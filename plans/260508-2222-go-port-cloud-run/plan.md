@@ -1,7 +1,7 @@
 ---
 title: "Go port of miti99bot to Google Cloud Run (free tier)"
 description: "Full rewrite of the grammY/Cloudflare Worker bot in Go, deployed to Cloud Run with Firestore + Gemini + Cloud Scheduler — all free-tier."
-status: planning
+status: in-progress
 priority: P2
 effort: 5-7d
 branch: main
@@ -28,15 +28,15 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 - **Cutover**: dual-run on test bot → flip prod webhook → 7-day overlap → decommission CF Worker.
 
 ## Reports
-- _(none yet — research phase optional, only triggered if cold-start / quota assumptions need validation)_
+- [code-reviewer 2026-05-08 — Phase 02-03 bootstrap](reports/code-reviewer-260508-2254-phase02-03-bootstrap.md) (3 critical + 7 high addressed in same session; 2 medium + nits deferred)
 
 ## Phases
 
 | # | Phase | Status | Effort | Key deliverable |
 |---|-------|--------|--------|-----------------|
 | 01 | [GCP setup + free-tier baseline](phase-01-gcp-setup.md) | pending | 3h | Hello-world Go on Cloud Run, cold-start P95 captured |
-| 02 | [New repo bootstrap + webhook skeleton](phase-02-repo-bootstrap.md) | pending | 3h | `miti99bot-go` repo, `/webhook` validates secret token |
-| 03 | [Module framework + storage interfaces](phase-03-module-framework.md) | pending | 4h | Module/Command/Cron interfaces, registry, dispatcher |
+| 02 | [New repo bootstrap + webhook skeleton](phase-02-repo-bootstrap.md) | partial | 3h | `miti99bot-go` repo, `/webhook` validates secret token (Cloud Run deploy + Telegram smoke test deferred to Phase 01) |
+| 03 | [Module framework + storage interfaces](phase-03-module-framework.md) | done | 4h | Module/Command/Cron interfaces, registry, dispatcher |
 | 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | pending | 4h | `FirestoreKVStore`, emulator tests, in-memory fake |
 | 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | pending | 6h | 4 KV-only modules at parity with JS version |
 | 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | pending | 5h | 5 modules sharing classic loldle patterns |
@@ -83,6 +83,7 @@ If Firestore reads cap is hit → enable Cloud Run instance-level cache (warm-in
 Per-phase rollback documented in each phase file. Phase 12 is the only irreversible step; until then, the CF Worker continues to serve prod via existing webhook.
 
 ## Open questions
-1. Scheduler cron names — keep `0 17 * * *` (UTC) = midnight Saigon? Confirm timezone target.
-2. Migrate KV/D1 data to Firestore (one-shot export) or start fresh on cutover? Trading has user-balance state worth preserving; loldle/wordle session state can reset.
-3. Test Telegram bot — reuse an existing dev bot, or create new `@miti99bot_dev`?
+_Resolved 2026-05-08:_
+1. ~~Scheduler cron names~~ → **Keep `0 17 * * *` UTC** (= midnight Saigon). Cloud Scheduler stays UTC, no behavior change vs. JS Worker.
+2. ~~Migrate KV/D1 data~~ → **Migrate everything**. One-shot export of D1 + KV → Firestore on cutover. Phase 12 owns the migration script.
+3. ~~Test Telegram bot~~ → **User creates the bot manually**, token + webhook secret injected via Cloud Run env vars (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`).

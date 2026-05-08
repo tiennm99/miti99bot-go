@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "New repo bootstrap + webhook skeleton"
-status: pending
+status: partial
 priority: P1
 effort: "3h"
 dependencies: [1]
@@ -62,11 +62,17 @@ Choice of `github.com/go-telegram/bot` (not `go-telegram-bot-api/v5`) — active
 10. Manual deploy to Cloud Run for end-to-end check: `gcloud run deploy miti99bot-go --source=. --region=asia-southeast1 --set-env-vars=… --set-secrets=TELEGRAM_BOT_TOKEN=…,TELEGRAM_WEBHOOK_SECRET=…`. Point dev bot's webhook at the Cloud Run URL. Verify `/ping`.
 
 ## Success Criteria
-- [ ] Repo exists, CI green
-- [ ] `/ping` works against dev bot via Cloud Run URL
-- [ ] Secret-token mismatch returns 401
-- [ ] Image size ≤20 MiB
-- [ ] No-secrets-in-git audit clean (gitleaks or manual scan)
+- [x] Repo exists, CI workflow defined (`go vet` + `go test -race` + `go build`)
+- [ ] `/ping` works against dev bot via Cloud Run URL — **deferred until Phase 01 (GCP setup) lands**
+- [x] Secret-token mismatch returns 401 (constant-time compare; covered by `internal/telegram/webhook_test.go`)
+- [x] Image size ≤20 MiB (binary 6.4 MB; distroless image ≈9 MB)
+- [x] No-secrets-in-git audit clean (no creds present; secrets stripped from `Deps.Env`)
+
+## Implementation deviations
+- Step 1 (`gh repo create`) skipped — repo already exists at `github.com/tiennm99/miti99bot-go`.
+- Steps 9–10 (ngrok smoke test, Cloud Run deploy) deferred to Phase 01.
+- Step 4's direct `/ping` registration replaced by the Phase 03 module dispatcher; no example module is shipped yet (`MODULES=""` boots cleanly).
+- Webhook + cron handlers carry hardenings beyond spec: constant-time secret compare, `MaxBytesReader`, shared-secret bridge for `/cron/{name}` (env: `CRON_SHARED_SECRET`; absent → endpoint disabled), bounded handler context via `bot.WithNotAsyncHandlers`, `bot.WithSkipGetMe` to avoid 5s cold-start blocking call. Code review recommendations C1–C3, H1–H7, M1, M4, L5 applied; remaining M-class items tracked in [report](reports/code-reviewer-260508-2254-phase02-03-bootstrap.md).
 
 ## Risk Assessment
 - **Risk**: `gcloud run deploy --source` uses Cloud Build, which has its own free tier (120 build-min/day). **Mitigation**: small Go build is ~30s; well within. CI/CD in Phase 10 may move builds to GHA to keep Cloud Build for fallback.

@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Module framework + storage interfaces"
-status: pending
+status: done
 priority: P1
 effort: "4h"
 dependencies: [2]
@@ -111,10 +111,18 @@ type KVStore interface {
 10. Unit tests: `registry_test.go` (conflict detection, validation errors), `prefix_test.go` (round-trip).
 
 ## Success Criteria
-- [ ] Empty `MODULES=""` boots cleanly, only `/start` works (grammY default fallback)
-- [ ] Two modules with same command name → startup fails with clear error
-- [ ] Per-module KVStore prefix isolation verified by test
-- [ ] `go vet ./...` + `go test ./...` green
+- [x] Empty `MODULES=""` boots cleanly (no fallback handler today; grammY's `/start` parity deferred to a future phase)
+- [x] Two modules with same command name → startup fails with clear error (`TestBuild_DetectsCommandConflict`)
+- [x] Per-module KVStore prefix isolation verified by test (`TestBuild_PerModulePrefixedKV`, `TestPrefixed_RoundTrip`, `TestDispatchScheduled_PassesPrefixedDeps`)
+- [x] `go vet ./...` + `go test -race -count=1 ./...` green
+
+## Implementation deviations
+- `Factory func() Module` → `Factory func(deps Deps) Module`: handler closures capture deps directly. Eliminates a separate `Module.Init` lifecycle step.
+- `Factories []Factory` → `Factories map[string]Factory`: required for `MODULES`-env name lookup; prevents duplicate names at compile-load.
+- `Deps` ships only `KV` + `Env` today. `Firestore` + `Gemini` fields land in Phases 04 / 07 (YAGNI).
+- Cron uniqueness enforced across modules (registry-level), instead of "concurrent errgroup of all matches" — simpler and matches the one-cron-per-name reality.
+- `cmd/server` strips `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `CRON_SHARED_SECRET` from `Deps.Env` to prevent accidental leakage.
+- Module names validated against `^[a-z0-9_]{1,32}$` (same regex as commands) so KV prefix isolation cannot be subverted by a `:` in the name.
 
 ## Risk Assessment
 - **Risk**: `go-telegram/bot` `RegisterHandler` is more general than grammY's `bot.command`. Need to confirm behavior on `/cmd@botname` (group chats). **Mitigation**: library docs say `MatchTypeCommand` strips `@botname`; verify with a group chat test before Phase 05.
