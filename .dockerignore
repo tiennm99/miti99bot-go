@@ -1,0 +1,8 @@
+.git
+.github
+plans
+docs
+*.md
+LICENSE
+Dockerfile
+.dockerignore
