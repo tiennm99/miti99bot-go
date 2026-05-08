@@ -29,6 +29,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 
 ## Reports
 - [code-reviewer 2026-05-08 — Phase 02-03 bootstrap](reports/code-reviewer-260508-2254-phase02-03-bootstrap.md) (3 critical + 7 high addressed in same session; 2 medium + nits deferred)
+- [code-reviewer 2026-05-08 — Phase 04 Firestore](reports/code-reviewer-260508-2333-phase04-firestore-kv.md) (0 critical, 3 high all addressed; mediums deferred)
 
 ## Phases
 
@@ -37,7 +38,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 | 01 | [GCP setup + free-tier baseline](phase-01-gcp-setup.md) | pending | 3h | Hello-world Go on Cloud Run, cold-start P95 captured |
 | 02 | [New repo bootstrap + webhook skeleton](phase-02-repo-bootstrap.md) | partial | 3h | `miti99bot-go` repo, `/webhook` validates secret token (Cloud Run deploy + Telegram smoke test deferred to Phase 01) |
 | 03 | [Module framework + storage interfaces](phase-03-module-framework.md) | done | 4h | Module/Command/Cron interfaces, registry, dispatcher |
-| 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | pending | 4h | `FirestoreKVStore`, emulator tests, in-memory fake |
+| 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | done | 4h | `FirestoreKVStore`, emulator tests, KVProvider abstraction (Memory + Firestore) |
 | 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | pending | 6h | 4 KV-only modules at parity with JS version |
 | 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | pending | 5h | 5 modules sharing classic loldle patterns |
 | 07 | [Gemini AI + port semantle/doantu/twentyq](phase-07-gemini-ai-modules.md) | pending | 6h | 3 AI modules with rate-limit handling |

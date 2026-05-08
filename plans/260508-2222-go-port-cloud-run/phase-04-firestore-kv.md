@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Firestore KVStore + per-module prefixing"
-status: pending
+status: done
 priority: P1
 effort: "4h"
 dependencies: [3]
@@ -62,10 +62,20 @@ fields:
 8. Add `Makefile`: `firestore-emulator: gcloud emulators firestore start --host-port=localhost:8085` and `test: FIRESTORE_EMULATOR_HOST=localhost:8085 go test ./...`.
 
 ## Success Criteria
-- [ ] All KV ops round-trip against emulator
-- [ ] In-memory fake matches Firestore semantics for List ordering + ErrNotFound
-- [ ] Two modules writing to same key name → no collision (verified by test)
-- [ ] `go test ./internal/storage/...` green
+- [x] All KV ops round-trip against emulator (`firestore_kv_test.go`, runs via `make test-emulator`)
+- [x] In-memory fake matches Firestore semantics for List ordering + ErrNotFound
+- [x] Two modules writing to same key name → no collision (`TestBuild_PerModulePrefixedKV` for memory backend; collection-per-module IS the isolation for Firestore — test exists in registry layer)
+- [x] `go test -race -count=1 ./...` green (Firestore tests skip cleanly without emulator)
+
+## Implementation deviations
+- Spec step 3 (wrap Firestore in `Prefixed`) contradicts step 7 (drop the wrapper). We followed step 7 — collection-per-module IS isolation. Memory backend keeps `Prefixed` because all modules share one in-process store.
+- Introduced `KVProvider` interface (not in spec): `MemoryProvider` wraps base+Prefixed, `FirestoreProvider` returns one collection per module. `modules.Build` now takes `KVProvider`+env map instead of base `Deps`. Cleaner: modules never see the backend choice.
+- Backend selection in `cmd/server/main.go`: Firestore when `GOOGLE_CLOUD_PROJECT` or `FIRESTORE_EMULATOR_HOST` is set (latter supplies a placeholder project ID for the SDK); otherwise in-memory.
+- `validateKey` rejects more than spec required: empty, `/`, `.`, `..`, `__namespace__`, > 1500 bytes. `validatePrefix` runs the same check on `List` arguments.
+- Binary size 6.4 MB → 17 MB after Firestore SDK + gRPC. Within Phase 02's ≤20 MiB target. Distroless image ≈19 MB.
+
+## Code review
+[Phase 04 review](reports/code-reviewer-260508-2333-phase04-firestore-kv.md) — 0 critical, 3 high (H1 emulator-only-no-project trap, H2 List-prefix unvalidated, H3 bytes-vs-runes doc) all addressed in same session; M1 prefixSuccessor all-0xFF degeneracy documented; remaining mediums deferred.
 
 ## Risk Assessment
 - **Risk**: Firestore document IDs reject `/` but JS keys may contain them (e.g. nested loldle state). **Mitigation**: encode `/` → `_` in Put, decode on Get. Document the mapping. Or use base64 for arbitrary keys.
