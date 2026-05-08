@@ -35,10 +35,10 @@ func factory(name string, cmds []Command, crons []Cron) Factory {
 	}
 }
 
-func baseDeps() Deps { return Deps{KV: storage.NewMemoryKVStore()} }
+func newProvider() storage.KVProvider { return storage.NewMemoryProvider() }
 
 func TestBuild_EmptyModulesBootsCleanly(t *testing.T) {
-	reg, err := Build(nil, map[string]Factory{}, baseDeps())
+	reg, err := Build(nil, map[string]Factory{}, newProvider(), nil)
 	if err != nil {
 		t.Fatalf("Build empty: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestBuild_LoadsRequestedModules(t *testing.T) {
 		"alpha": factory("alpha", []Command{noopCmd("a1")}, nil),
 		"beta":  factory("beta", []Command{noopCmd("b1")}, []Cron{noopCron("daily")}),
 	}
-	reg, err := Build([]string{"alpha", "beta"}, factories, baseDeps())
+	reg, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil)
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestBuild_SkipsModulesNotInEnv(t *testing.T) {
 		"alpha": factory("alpha", []Command{noopCmd("a1")}, nil),
 		"beta":  factory("beta", []Command{noopCmd("b1")}, nil),
 	}
-	reg, err := Build([]string{"alpha"}, factories, baseDeps())
+	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil)
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestBuild_SkipsModulesNotInEnv(t *testing.T) {
 }
 
 func TestBuild_RejectsUnknownModule(t *testing.T) {
-	_, err := Build([]string{"ghost"}, map[string]Factory{}, baseDeps())
+	_, err := Build([]string{"ghost"}, map[string]Factory{}, newProvider(), nil)
 	if err == nil || !strings.Contains(err.Error(), "ghost") {
 		t.Errorf("expected error mentioning ghost, got %v", err)
 	}
@@ -93,7 +93,7 @@ func TestBuild_DetectsCommandConflict(t *testing.T) {
 		"alpha": factory("alpha", []Command{noopCmd("ping")}, nil),
 		"beta":  factory("beta", []Command{noopCmd("ping")}, nil),
 	}
-	_, err := Build([]string{"alpha", "beta"}, factories, baseDeps())
+	_, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil)
 	if err == nil {
 		t.Fatal("expected conflict error")
 	}
@@ -107,16 +107,16 @@ func TestBuild_DetectsCronConflict(t *testing.T) {
 		"alpha": factory("alpha", nil, []Cron{noopCron("daily")}),
 		"beta":  factory("beta", nil, []Cron{noopCron("daily")}),
 	}
-	_, err := Build([]string{"alpha", "beta"}, factories, baseDeps())
+	_, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil)
 	if err == nil || !strings.Contains(err.Error(), "cron conflict") {
 		t.Errorf("expected cron conflict, got %v", err)
 	}
 }
 
-func TestBuild_RequiresKV(t *testing.T) {
-	_, err := Build(nil, map[string]Factory{}, Deps{})
+func TestBuild_RequiresProvider(t *testing.T) {
+	_, err := Build(nil, map[string]Factory{}, nil, nil)
 	if err == nil {
-		t.Error("expected error when Deps.KV is nil")
+		t.Error("expected error when KVProvider is nil")
 	}
 }
 
@@ -125,7 +125,7 @@ func TestBuild_ValidationErrorsMentionModule(t *testing.T) {
 	factories := map[string]Factory{
 		"alpha": factory("alpha", []Command{bad}, nil),
 	}
-	_, err := Build([]string{"alpha"}, factories, baseDeps())
+	_, err := Build([]string{"alpha"}, factories, newProvider(), nil)
 	if err == nil || !strings.Contains(err.Error(), "alpha") {
 		t.Errorf("expected error mentioning module 'alpha', got %v", err)
 	}
@@ -142,7 +142,7 @@ func TestDispatchScheduled_RunsHandler(t *testing.T) {
 			},
 		}}),
 	}
-	reg, err := Build([]string{"alpha"}, factories, baseDeps())
+	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil)
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestDispatchScheduled_RunsHandler(t *testing.T) {
 }
 
 func TestDispatchScheduled_UnknownReturnsErrCronNotFound(t *testing.T) {
-	reg, err := Build(nil, map[string]Factory{}, baseDeps())
+	reg, err := Build(nil, map[string]Factory{}, newProvider(), nil)
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestDispatchScheduled_UnknownReturnsErrCronNotFound(t *testing.T) {
 
 func TestDispatchScheduled_PassesPrefixedDeps(t *testing.T) {
 	ctx := context.Background()
-	base := storage.NewMemoryKVStore()
+	provider := storage.NewMemoryProvider()
 
 	factories := map[string]Factory{
 		"alpha": func(d Deps) Module {
@@ -187,7 +187,7 @@ func TestDispatchScheduled_PassesPrefixedDeps(t *testing.T) {
 			}}}
 		},
 	}
-	reg, err := Build([]string{"alpha", "beta"}, factories, Deps{KV: base})
+	reg, err := Build([]string{"alpha", "beta"}, factories, provider, nil)
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -199,11 +199,11 @@ func TestDispatchScheduled_PassesPrefixedDeps(t *testing.T) {
 	}
 
 	// Underlying base store should hold each module's prefixed key separately.
-	gotA, err := base.Get(ctx, "alpha:last")
+	gotA, err := provider.Base().Get(ctx, "alpha:last")
 	if err != nil || string(gotA) != "A" {
 		t.Errorf("alpha:last = %q (err=%v), want A", gotA, err)
 	}
-	gotB, err := base.Get(ctx, "beta:last")
+	gotB, err := provider.Base().Get(ctx, "beta:last")
 	if err != nil || string(gotB) != "B" {
 		t.Errorf("beta:last = %q (err=%v), want B", gotB, err)
 	}
@@ -212,7 +212,7 @@ func TestDispatchScheduled_PassesPrefixedDeps(t *testing.T) {
 func TestBuild_RejectsInvalidModuleName(t *testing.T) {
 	for _, name := range []string{"BadName", "with-dash", "a:b", ""} {
 		t.Run(name, func(t *testing.T) {
-			_, err := Build([]string{name}, map[string]Factory{}, baseDeps())
+			_, err := Build([]string{name}, map[string]Factory{}, newProvider(), nil)
 			if err == nil {
 				t.Errorf("name %q: expected error", name)
 			}
@@ -224,7 +224,7 @@ func TestBuild_RejectsDuplicateModuleInEnv(t *testing.T) {
 	factories := map[string]Factory{
 		"alpha": factory("alpha", []Command{noopCmd("a1")}, nil),
 	}
-	_, err := Build([]string{"alpha", "alpha"}, factories, baseDeps())
+	_, err := Build([]string{"alpha", "alpha"}, factories, newProvider(), nil)
 	if err == nil || !strings.Contains(err.Error(), "duplicate") {
 		t.Errorf("expected duplicate-module error, got %v", err)
 	}
@@ -232,7 +232,7 @@ func TestBuild_RejectsDuplicateModuleInEnv(t *testing.T) {
 
 func TestBuild_PerModulePrefixedKV(t *testing.T) {
 	ctx := context.Background()
-	base := storage.NewMemoryKVStore()
+	provider := storage.NewMemoryProvider()
 
 	// Each module writes a value to the same key; with per-module prefixing
 	// they must not collide.
@@ -247,7 +247,7 @@ func TestBuild_PerModulePrefixedKV(t *testing.T) {
 			return Module{Commands: []Command{noopCmd("b")}}
 		},
 	}
-	if _, err := Build([]string{"alpha", "beta"}, factories, Deps{KV: base}); err != nil {
+	if _, err := Build([]string{"alpha", "beta"}, factories, provider, nil); err != nil {
 		t.Fatalf("Build: %v", err)
 	}
 

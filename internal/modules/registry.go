@@ -57,16 +57,18 @@ func (r *Registry) Crons() []Cron {
 	return out
 }
 
-// Build constructs a Registry from the requested module names. It calls each
-// factory with a per-module-prefixed KVStore, validates every command/cron,
-// and aborts on duplicate command names across the union of all visibilities.
+// Build constructs a Registry from the requested module names. The KVProvider
+// supplies a per-module-isolated KVStore (MemoryProvider key-prefixes a shared
+// store; FirestoreProvider hands out one collection per module). Build validates
+// every command/cron and aborts on duplicate command names across the union of
+// all visibilities.
 //
 // Names not present in factories are reported as a single error so a typo in
 // MODULES does not silently load a smaller bot than intended. Duplicate names
 // in MODULES are also a hard error to keep startup deterministic.
-func Build(enabled []string, factories map[string]Factory, base Deps) (*Registry, error) {
-	if base.KV == nil {
-		return nil, fmt.Errorf("modules: Deps.KV is required")
+func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider, env map[string]string) (*Registry, error) {
+	if kv == nil {
+		return nil, fmt.Errorf("modules: KVProvider is required")
 	}
 
 	reg := &Registry{
@@ -99,8 +101,8 @@ func Build(enabled []string, factories map[string]Factory, base Deps) (*Registry
 		}
 
 		moduleDeps := Deps{
-			KV:  storage.Prefixed(base.KV, name),
-			Env: base.Env,
+			KV:  kv.For(name),
+			Env: env,
 		}
 		mod := factory(moduleDeps)
 		mod.Name = name // enforce: module name is its registry key, not whatever the factory chose

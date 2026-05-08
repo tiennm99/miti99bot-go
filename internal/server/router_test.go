@@ -15,7 +15,7 @@ const testCronSecret = "shared-cron-secret"
 
 func buildRegistry(t *testing.T, factories map[string]modules.Factory, names ...string) *modules.Registry {
 	t.Helper()
-	reg, err := modules.Build(names, factories, modules.Deps{KV: storage.NewMemoryKVStore()})
+	reg, err := modules.Build(names, factories, storage.NewMemoryProvider(), nil)
 	if err != nil {
 		t.Fatalf("modules.Build: %v", err)
 	}

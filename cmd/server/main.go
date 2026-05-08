@@ -25,6 +25,11 @@ var secretEnvKeys = []string{
 	"CRON_SHARED_SECRET",
 }
 
+// firestoreInitTimeout caps client construction at startup. Cloud Run cold
+// start budget is 500ms target; firestore.NewClient is normally fast but
+// network blips can make it hang. Fail fast and let Cloud Run restart us.
+const firestoreInitTimeout = 10 * time.Second
+
 func main() {
 	cfg := loadConfig()
 	if cfg.TelegramBotToken == "" {
@@ -37,15 +42,18 @@ func main() {
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	provider, closeProvider, err := buildProvider(rootCtx, cfg)
+	if err != nil {
+		log.Fatalf("storage: %v", err)
+	}
+	defer closeProvider()
+
 	b, err := telegram.NewBot(cfg.TelegramBotToken)
 	if err != nil {
 		log.Fatalf("telegram bot init: %v", err)
 	}
 
-	kv := storage.NewMemoryKVStore()
-	deps := modules.Deps{KV: kv, Env: cfg.ModuleEnv}
-
-	reg, err := modules.Build(cfg.Modules, modules.Factories, deps)
+	reg, err := modules.Build(cfg.Modules, modules.Factories, provider, cfg.ModuleEnv)
 	if err != nil {
 		log.Fatalf("module registry: %v", err)
 	}
@@ -91,13 +99,49 @@ func main() {
 	}
 }
 
+// buildProvider picks the storage backend from env. Firestore is selected
+// when GOOGLE_CLOUD_PROJECT or FIRESTORE_EMULATOR_HOST is set; otherwise we
+// fall back to in-memory storage so a developer can run the bot without GCP.
+//
+// Returned closer is always non-nil and safe to call exactly once.
+func buildProvider(ctx context.Context, cfg config) (storage.KVProvider, func(), error) {
+	useFirestore := cfg.GCPProject != "" || cfg.FirestoreEmulatorHost != ""
+	if !useFirestore {
+		log.Println("WARN: GOOGLE_CLOUD_PROJECT unset; using in-memory KV (data lost on restart)")
+		return storage.NewMemoryProvider(), func() {}, nil
+	}
+
+	// Emulator ignores the project ID but the SDK still requires *some*
+	// non-empty value; supply a placeholder so emulator-only local dev works.
+	projectID := cfg.GCPProject
+	if projectID == "" && cfg.FirestoreEmulatorHost != "" {
+		projectID = "miti99bot-emulator"
+	}
+
+	initCtx, cancel := context.WithTimeout(ctx, firestoreInitTimeout)
+	defer cancel()
+	client, err := storage.NewFirestoreClient(initCtx, projectID)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	closer := func() {
+		if err := client.Close(); err != nil {
+			log.Printf("firestore close: %v", err)
+		}
+	}
+	log.Printf("storage: Firestore project=%s emulator=%q", projectID, cfg.FirestoreEmulatorHost)
+	return storage.NewFirestoreProvider(client), closer, nil
+}
+
 type config struct {
-	Port             string
-	TelegramBotToken string
-	WebhookSecret    string
-	CronSecret       string
-	Modules          []string
-	ModuleEnv        map[string]string // sensitive keys stripped, safe to hand to modules
+	Port                  string
+	TelegramBotToken      string
+	WebhookSecret         string
+	CronSecret            string
+	GCPProject            string
+	FirestoreEmulatorHost string
+	Modules               []string
+	ModuleEnv             map[string]string // sensitive keys stripped, safe to hand to modules
 }
 
 func loadConfig() config {
@@ -112,12 +156,14 @@ func loadConfig() config {
 		port = "8080"
 	}
 	return config{
-		Port:             port,
-		TelegramBotToken: envMap["TELEGRAM_BOT_TOKEN"],
-		WebhookSecret:    envMap["TELEGRAM_WEBHOOK_SECRET"],
-		CronSecret:       envMap["CRON_SHARED_SECRET"],
-		Modules:          splitCSV(envMap["MODULES"]),
-		ModuleEnv:        envForModules(envMap),
+		Port:                  port,
+		TelegramBotToken:      envMap["TELEGRAM_BOT_TOKEN"],
+		WebhookSecret:         envMap["TELEGRAM_WEBHOOK_SECRET"],
+		CronSecret:            envMap["CRON_SHARED_SECRET"],
+		GCPProject:            envMap["GOOGLE_CLOUD_PROJECT"],
+		FirestoreEmulatorHost: envMap["FIRESTORE_EMULATOR_HOST"],
+		Modules:               splitCSV(envMap["MODULES"]),
+		ModuleEnv:              envForModules(envMap),
 	}
 }
 
