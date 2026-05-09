@@ -14,7 +14,7 @@ Parameters:
 
   ModulesCSV:
     Type: String
-    Default: util,misc,wordle,loldle,loldle-ability,loldle-emoji,loldle-quote,loldle-splash,lolschedule,semantle,doantu,twentyq
+    Default: util,misc,wordle,loldle,loldle-ability,loldle-emoji,loldle-quote,loldle-splash,lolschedule,semantle,doantu,twentyq,trading
     Description: Comma-separated module names enabled at runtime (matches MODULES env).
 
   BotOwnerID:
@@ -88,6 +88,21 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-bot"
       RetentionInDays: 7
+
+  # Lambda emits a synthetic REPORT line at the end of every invocation.
+  # On a cold start that line includes "Init Duration: <ms>". This filter
+  # parses that field into a custom metric so the AWS-port plan's "P95 < 1.5s"
+  # cold-start abort criterion is observable from day one.
+  ColdStartMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref BotFunctionLogGroup
+      FilterPattern: '[report="REPORT", reqid_label="RequestId:", reqid, dur_label="Duration:", dur, dur_unit="ms", bill_label="Billed", bill_dur_label, bill_dur, bill_unit, mem_label, mem_size_label, mem_size, mem_unit, max_label="Max", max_used_label="Memory", max_used_label2="Used:", max_used, max_used_unit, init_label="Init", init_dur_label="Duration:", init_dur, init_unit="ms"]'
+      MetricTransformations:
+        - MetricName: ColdStartInitDuration
+          MetricNamespace: miti99bot
+          MetricValue: $init_dur
+          Unit: Milliseconds
 
   BotFunction:
     Type: AWS::Serverless::Function
