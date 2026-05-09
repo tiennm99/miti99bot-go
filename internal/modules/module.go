@@ -79,6 +79,7 @@ type Deps struct {
 	Registry *Registry         // populated by Build; safe to capture but read-only at module use
 	Embedder ai.Embedder       // nil if GEMINI_API_KEY unset; semantle/doantu must check
 	Chatter  ai.Chatter        // nil if GEMINI_API_KEY unset; twentyq must check
+	Bot      *bot.Bot          // nil-safe: only crons that fan-out (lolschedule daily push) need it
 }
 
 // Factory constructs a Module from its Deps. Spec deviation: Phase 03 plan

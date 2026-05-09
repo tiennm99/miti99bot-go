@@ -25,6 +25,7 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/modules/lolschedule"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
 	"github.com/tiennm99/miti99bot-go/internal/modules/semantle"
+	"github.com/tiennm99/miti99bot-go/internal/modules/trading"
 	"github.com/tiennm99/miti99bot-go/internal/modules/twentyq"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util"
 	"github.com/tiennm99/miti99bot-go/internal/modules/wordle"
@@ -50,6 +51,7 @@ func factories() map[string]modules.Factory {
 		"semantle":       semantle.New,
 		"doantu":         doantu.New,
 		"twentyq":        twentyq.New,
+		"trading":        trading.New,
 	}
 }
 
@@ -106,6 +108,7 @@ func main() {
 	reg, err := modules.Build(cfg.Modules, factories(), provider, cfg.ModuleEnv, modules.BuildOptions{
 		Embedder: aiClient,
 		Chatter:  aiClient,
+		Bot:      b,
 	})
 	if err != nil {
 		log.Fatal("module registry build failed", "err", err)

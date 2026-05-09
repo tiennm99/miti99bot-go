@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/go-telegram/bot"
+
 	"github.com/tiennm99/miti99bot-go/internal/ai"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
@@ -83,6 +85,7 @@ func (r *Registry) Crons() []Cron {
 type BuildOptions struct {
 	Embedder ai.Embedder
 	Chatter  ai.Chatter
+	Bot      *bot.Bot
 }
 
 func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider, env map[string]string, opts BuildOptions) (*Registry, error) {
@@ -125,6 +128,7 @@ func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider
 			Registry: reg,
 			Embedder: opts.Embedder,
 			Chatter:  opts.Chatter,
+			Bot:      opts.Bot,
 		}
 		mod := factory(moduleDeps)
 		// A factory that hardcodes its own Name is a bug: the registry key is
