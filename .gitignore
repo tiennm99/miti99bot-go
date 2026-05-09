@@ -33,3 +33,13 @@ go.work.sum
 
 # Claude Code agent runtime state (settings.json IS checked in; this isn't)
 .claude/agent-memory/
+
+# Local build artifacts (Lambda binary, host binary)
+build/
+bin/
+
+# SAM CLI staging
+.aws-sam/
+
+# Per-developer SAM overrides (samconfig.toml IS checked in)
+samconfig.local.toml

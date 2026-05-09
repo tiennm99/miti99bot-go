@@ -1,0 +1,208 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  miti99bot-go: Telegram bot on AWS Lambda (Go ZIP + LWA) with DynamoDB KV
+  + EventBridge cron + SSM Parameter Store secrets. Strict free-tier deploy.
+
+Parameters:
+  StackEnv:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, prod]
+    Description: Environment suffix used in SSM parameter paths.
+
+  ModulesCSV:
+    Type: String
+    Default: util,misc,wordle,loldle,loldle-ability,loldle-emoji,loldle-quote,loldle-splash,lolschedule,semantle,doantu,twentyq
+    Description: Comma-separated module names enabled at runtime (matches MODULES env).
+
+  BotOwnerID:
+    Type: String
+    Default: ""
+    Description: Telegram numeric user ID with bot-owner privileges. Empty disables Private/Protected commands.
+
+  AdminUserIDs:
+    Type: String
+    Default: ""
+    Description: Comma-separated Telegram user IDs allowed to use admin commands.
+
+  Phow2simAPIURL:
+    Type: String
+    Default: ""
+    Description: Optional override for the doantu module's PHOW2SIM endpoint.
+
+  # AWS Lambda Web Adapter ARM64 layer ARN. Pin a specific version so deploys
+  # are reproducible. Bump by checking the latest at:
+  #   https://github.com/awslabs/aws-lambda-web-adapter/releases
+  LambdaAdapterLayerArn:
+    Type: String
+    Default: arn:aws:lambda:ap-southeast-1:753240598075:layer:LambdaAdapterLayerArm64:25
+    Description: AWS Lambda Web Adapter layer ARN for the deploy region (ARM64).
+
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: Email for $1 budget alert. Leave empty to skip the budget resource.
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 30
+    Tracing: Active
+    LoggingConfig:
+      LogFormat: JSON
+      ApplicationLogLevel: INFO
+      SystemLogLevel: WARN
+
+Resources:
+
+  # --- Storage --------------------------------------------------------------
+
+  BotTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-data"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false # paid feature; off for free tier
+      Tags:
+        - { Key: app, Value: miti99bot }
+        - { Key: env, Value: !Ref StackEnv }
+
+  # --- Compute --------------------------------------------------------------
+
+  BotFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-bot"
+      RetentionInDays: 7
+
+  BotFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: BotFunctionLogGroup
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-bot"
+      CodeUri: build/lambda/
+      Handler: bootstrap
+      Layers:
+        - !Ref LambdaAdapterLayerArn
+      LoggingConfig:
+        LogGroup: !Ref BotFunctionLogGroup
+      Environment:
+        Variables:
+          PORT: "8080"
+          AWS_LAMBDA_EXEC_WRAPPER: /opt/bootstrap
+          READINESS_CHECK_PATH: /
+          # ---- App config (non-secret) ----
+          KV_PROVIDER: dynamodb
+          DYNAMODB_TABLE: !Ref BotTable
+          MODULES: !Ref ModulesCSV
+          BOT_OWNER_ID: !Ref BotOwnerID
+          ADMIN_USER_IDS: !Ref AdminUserIDs
+          PHOW2SIM_API_URL: !Ref Phow2simAPIURL
+          # ---- Secrets (resolved from Parameter Store at deploy time) ----
+          # Token rotation = update parameter, redeploy stack. For zero-redeploy
+          # rotation, switch to runtime fetch in main.go.
+          TELEGRAM_BOT_TOKEN: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/telegram-bot-token:1}}"
+          TELEGRAM_WEBHOOK_SECRET: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/telegram-webhook-secret:1}}"
+          GEMINI_API_KEY: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/gemini-api-key:1}}"
+          CRON_SHARED_SECRET: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/cron-shared-secret:1}}"
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: BUFFERED
+        Cors:
+          AllowOrigins: ["*"] # Telegram doesn't send CORS; safe default
+          AllowMethods: ["POST", "GET"]
+          AllowHeaders: ["*"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BotTable
+
+  # --- Cron -----------------------------------------------------------------
+
+  CronDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-cron-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  SchedulerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: scheduler.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: cron-https-invoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # HTTPS targets to Lambda Function URL — Scheduler treats them as
+              # invocations of the function. Lock to this function's ARN only.
+              - Effect: Allow
+                Action: lambda:InvokeFunctionUrl
+                Resource: !GetAtt BotFunction.Arn
+              # DLQ
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt CronDLQ.Arn
+
+  # NOTE: Concrete schedules are added in Phase 04. We provision the role +
+  # DLQ here so the IaC review surface stays accurate and Phase 04 just adds
+  # AWS::Scheduler::Schedule resources.
+
+  # --- Cost guard -----------------------------------------------------------
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasAlertEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetLimit: { Amount: '1', Unit: USD }
+        TimeUnit: MONTHLY
+        BudgetType: COST
+      NotificationsWithSubscribers:
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - { Address: !Ref AlertEmail, SubscriptionType: EMAIL }
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - { Address: !Ref AlertEmail, SubscriptionType: EMAIL }
+
+Outputs:
+  FunctionUrl:
+    Description: Public Function URL — set this as the Telegram webhook
+    Value: !GetAtt BotFunctionUrl.FunctionUrl
+  TableName:
+    Description: DynamoDB table name (also exposed to the Lambda via DYNAMODB_TABLE)
+    Value: !Ref BotTable
+  LogGroup:
+    Description: CloudWatch log group for the bot Lambda
+    Value: !Ref BotFunctionLogGroup
+  CronDLQArn:
+    Description: ARN of the cron dead-letter queue
+    Value: !GetAtt CronDLQ.Arn

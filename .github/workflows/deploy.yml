@@ -1,0 +1,68 @@
+name: deploy-aws
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SAM deploy (prod)
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-southeast-1
+      STACK_NAME: miti99bot-aws-port
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-deploy-miti99bot
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build Lambda binary
+        run: make build-lambda
+
+      - name: SAM build
+        run: sam build
+
+      - name: SAM deploy
+        env:
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          if [ -n "$ALERT_EMAIL" ]; then
+            sam deploy \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset \
+              --parameter-overrides "AlertEmail=$ALERT_EMAIL"
+          else
+            sam deploy \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset
+          fi
+
+      - name: Smoke test (Function URL responds)
+        run: |
+          URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
+            --output text)
+          echo "FunctionUrl=$URL"
+          curl -fsSL --max-time 30 "$URL/" | tee /tmp/smoke.json | jq .

@@ -64,3 +64,14 @@ jobs:
 
       - name: docker build
         run: docker build -t miti99bot-go .
+
+  iac:
+    name: SAM template validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      - name: sam validate (offline)
+        run: sam validate --lint --region ap-southeast-1
