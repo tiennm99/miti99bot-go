@@ -67,18 +67,19 @@ A small shared package would help, but keep modules independent (KISS) until dup
 
 ## Cook scope split
 This phase ships in five sub-cooks (one per module — each is large enough to risk context exhaustion):
-- **6a (this cook):** loldle-emoji — 172-record emoji clue dict, binary scoring, simplest variant. ✅
-- **6b (next):** loldle-quote — same shape as emoji, quote pool. **Prep work:** extract `normalize`, `subjectFor`, `argAfterCommand`, `findChampion` to a shared package; classic loldle and 6a both already duplicate them, 6b would be the third caller — past the YAGNI extraction threshold.
+- **6a:** loldle-emoji — 172-record emoji clue dict, binary scoring, simplest variant. ✅
+- **6b:** loldle-quote — quote-pool variant, default 6 guesses. ✅ (consumes the shared `chathelper` + `champname` packages extracted in fix-all-review-findings Phase 03)
 - **6c (next):** loldle-ability — DDragon ability-icon URL builder, sendPhoto.
 - **6d (next):** loldle-splash — DDragon splash URL builder, sendPhoto.
 - **6e (next):** lolschedule — HTTP client to lolesports/leaguepedia API; no game state, different shape entirely.
 
 ## Success Criteria
 - [x] loldle-emoji responds to `/loldle_emoji`, `/loldle_emoji_giveup`, `/loldle_emoji_stats`, `/loldle_emoji_setmax`
+- [x] loldle-quote responds to `/loldle_quote`, `/loldle_quote_giveup`, `/loldle_quote_stats`, `/loldle_quote_setmax`
 - [ ] Ability + splash images render in Telegram (no broken-image markers) — deferred to 6c/6d
 - [ ] `/lolschedule today` matches JS behavior — deferred to 6e
-- [ ] All variants share consistent guess-count limits matching JS recent revert (`commit 29e558b`) — partial: emoji at 5, others pending
-- [x] Ported tests pass for loldle-emoji (lookup, state, render, JS-wire-format decode)
+- [x] All variants share consistent guess-count limits matching JS (emoji 5, quote 6 — JS parity)
+- [x] Ported tests pass for loldle-emoji + loldle-quote (lookup, state, render, JS-wire-format decode, handler integration)
 
 ## Implementation deviations (6a — loldle-emoji)
 - `moduleNameRe` relaxed from `^[a-z0-9_]{1,32}$` to `^[a-z0-9_-]{1,32}$` so JS-source module names like `loldle-emoji` pass validation. The storage prefix delimiter (`:`) remains rejected; tests cover both shapes.

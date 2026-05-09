@@ -1,0 +1,690 @@
+[
+  {
+    "championName": "Aatrox",
+    "quote": "the Darkin Blade — Once honored defenders of Shurima against the Void, ___ and his brethren would eventually become an even greater threat to Runeterra, and were defeated only by cunning mortal sorcery."
+  },
+  {
+    "championName": "Ahri",
+    "quote": "the Nine-Tailed Fox — Innately connected to the magic of the spirit realm, ___ is a fox-like vastaya who can manipulate her prey's emotions and consume their essence—receiving flashes of their memory and insight from each soul she consumes."
+  },
+  {
+    "championName": "Akali",
+    "quote": "the Rogue Assassin — Abandoning the Kinkou Order and her title of the Fist of Shadow, ___ now strikes alone, ready to be the deadly weapon her people need."
+  },
+  {
+    "championName": "Akshan",
+    "quote": "the Rogue Sentinel — Raising an eyebrow in the face of danger, ___ fights evil with dashing charisma, righteous vengeance, and a conspicuous lack of shirts."
+  },
+  {
+    "championName": "Alistar",
+    "quote": "the Minotaur — Always a mighty warrior with a fearsome reputation, ___ seeks revenge for the death of his clan at the hands of the Noxian empire."
+  },
+  {
+    "championName": "Ambessa",
+    "quote": "Matriarch of War — All who know the name Medarda respect and fear the family's leader, ___."
+  },
+  {
+    "championName": "Amumu",
+    "quote": "the Sad Mummy — Legend claims that ___ is a lonely and melancholy soul from ancient Shurima, roaming the world in search of a friend."
+  },
+  {
+    "championName": "Anivia",
+    "quote": "the Cryophoenix — ___ is a benevolent winged spirit who endures endless cycles of life, death, and rebirth to protect the Freljord."
+  },
+  {
+    "championName": "Annie",
+    "quote": "the Dark Child — Dangerous, yet disarmingly precocious, ___ is a child mage with immense pyromantic power."
+  },
+  {
+    "championName": "Aphelios",
+    "quote": "the Weapon of the Faithful — Emerging from moonlight's shadow with weapons drawn, ___ kills the enemies of his faith in brooding silence—speaking only through the certainty of his aim, and the firing of each gun."
+  },
+  {
+    "championName": "Ashe",
+    "quote": "the Frost Archer — Iceborn warmother of the Avarosan tribe, ___ commands the most populous horde in the north."
+  },
+  {
+    "championName": "Aurelion Sol",
+    "quote": "The Star Forger — ___ once graced the vast emptiness of the cosmos with celestial wonders of his own devising."
+  },
+  {
+    "championName": "Aurora",
+    "quote": "the Witch Between Worlds — From the moment she was born, ___ navigated life with a unique ability to move between the spirit and material realms."
+  },
+  {
+    "championName": "Azir",
+    "quote": "the Emperor of the Sands — ___ was a mortal emperor of Shurima in a far distant age, a proud man who stood at the cusp of immortality."
+  },
+  {
+    "championName": "Bard",
+    "quote": "the Wandering Caretaker — A traveler from beyond the stars, ___ is an agent of serendipity who fights to maintain a balance where life can endure the indifference of chaos."
+  },
+  {
+    "championName": "Bel'Veth",
+    "quote": "the Empress of the Void — A nightmarish empress created from the raw material of an entire devoured city, ___ is the end of Runeterra itself."
+  },
+  {
+    "championName": "Blitzcrank",
+    "quote": "the Great Steam Golem — ___ is an enormous, near-indestructible automaton from Zaun, originally built to dispose of hazardous waste."
+  },
+  {
+    "championName": "Brand",
+    "quote": "the Burning Vengeance — Once a tribesman of the icy Freljord named Kegan Rodhe, the creature known as ___ is a lesson in the temptation of greater power."
+  },
+  {
+    "championName": "Braum",
+    "quote": "the Heart of the Freljord — Blessed with massive biceps and an even bigger heart, ___ is a beloved hero of the Freljord."
+  },
+  {
+    "championName": "Briar",
+    "quote": "the Restrained Hunger — A failed experiment by the Black Rose, ___'s uncontrollable bloodlust required a special pillory to focus her frenzied mind."
+  },
+  {
+    "championName": "Caitlyn",
+    "quote": "the Sheriff of Piltover — Renowned as its finest peacekeeper, ___ Kiramman is also Piltover's best shot at ridding the city of its elusive criminal elements."
+  },
+  {
+    "championName": "Camille",
+    "quote": "the Steel Shadow — Weaponized to operate outside the boundaries of the law, ___ is the Principal Intelligencer of Clan Ferros—an elegant and elite agent who ensures the Piltover machine and its Zaunite underbelly runs smoothly."
+  },
+  {
+    "championName": "Cassiopeia",
+    "quote": "the Serpent's Embrace — ___ is a deadly creature bent on manipulating others to her sinister will."
+  },
+  {
+    "championName": "Cho'Gath",
+    "quote": "the Terror of the Void — From the moment ___ first emerged into the harsh light of Runeterra's sun, the beast was driven by the most pure and insatiable hunger."
+  },
+  {
+    "championName": "Corki",
+    "quote": "the Daring Bombardier — The yordle pilot ___ loves two things above all others: flying, and his glamorous mustache."
+  },
+  {
+    "championName": "Darius",
+    "quote": "the Hand of Noxus — There is no greater symbol of Noxian might than ___, the nation's most feared and battle-hardened commander."
+  },
+  {
+    "championName": "Diana",
+    "quote": "Scorn of the Moon — Bearing her crescent moonblade, ___ fights as a warrior of the Lunari—a faith all but quashed in the lands around Mount Targon."
+  },
+  {
+    "championName": "Dr. Mundo",
+    "quote": "the Madman of Zaun — Utterly mad, tragically homicidal, and horrifyingly purple, Dr."
+  },
+  {
+    "championName": "Draven",
+    "quote": "the Glorious Executioner — In Noxus, warriors known as Reckoners face one another in arenas where blood is spilled and strength tested—but none has ever been as celebrated as ___."
+  },
+  {
+    "championName": "Ekko",
+    "quote": "the Boy Who Shattered Time — A prodigy from the rough streets of Zaun, ___ is able to manipulate time to twist any situation to his advantage."
+  },
+  {
+    "championName": "Elise",
+    "quote": "the Spider Queen — ___ is a deadly predator who dwells in a shuttered, lightless palace, deep within the oldest city of Noxus."
+  },
+  {
+    "championName": "Evelynn",
+    "quote": "Agony's Embrace — Within the dark seams of Runeterra, the demon ___ searches for her next victim."
+  },
+  {
+    "championName": "Ezreal",
+    "quote": "the Prodigal Explorer — A dashing adventurer, unknowingly gifted in the magical arts, ___ raids long-lost catacombs, tangles with ancient curses, and overcomes seemingly impossible odds with ease."
+  },
+  {
+    "championName": "Fiddlesticks",
+    "quote": "the Ancient Fear — Something has awoken in Runeterra."
+  },
+  {
+    "championName": "Fiora",
+    "quote": "the Grand Duelist — The most feared duelist in all Valoran, ___ is as renowned for her brusque manner and cunning mind as she is for the speed of her bluesteel rapier."
+  },
+  {
+    "championName": "Fizz",
+    "quote": "the Tidal Trickster — ___ is an amphibious yordle, who dwells among the reefs surrounding Bilgewater."
+  },
+  {
+    "championName": "Galio",
+    "quote": "the Colossus — Outside the gleaming city of Demacia, the stone colossus ___ keeps vigilant watch."
+  },
+  {
+    "championName": "Gangplank",
+    "quote": "the Saltwater Scourge — As unpredictable as he is brutal, the dethroned reaver king ___ is feared far and wide."
+  },
+  {
+    "championName": "Garen",
+    "quote": "The Might of Demacia — A proud and noble warrior, ___ fights as one of the Dauntless Vanguard."
+  },
+  {
+    "championName": "Gnar",
+    "quote": "the Missing Link — ___ is a primeval yordle whose playful antics can erupt into a toddler's outrage in an instant, transforming him into a massive beast bent on destruction."
+  },
+  {
+    "championName": "Gragas",
+    "quote": "the Rabble Rouser — Equal parts jolly and imposing, ___ is a massive, rowdy brewmaster who's always on the lookout for new ways to raise everyone's spirits."
+  },
+  {
+    "championName": "Graves",
+    "quote": "the Outlaw — Malcolm ___ is a renowned mercenary, gambler, and thief—a wanted man in every city and empire he has visited."
+  },
+  {
+    "championName": "Gwen",
+    "quote": "The Hallowed Seamstress — A former doll transformed and brought to life by magic, ___ wields the very tools that once created her."
+  },
+  {
+    "championName": "Hecarim",
+    "quote": "the Shadow of War — ___ is a spectral fusion of man and beast, cursed to ride down the souls of the living for all eternity."
+  },
+  {
+    "championName": "Heimerdinger",
+    "quote": "the Revered Inventor — The eccentric Professor Cecil B."
+  },
+  {
+    "championName": "Hwei",
+    "quote": "the Visionary — ___ is a brooding painter who creates brilliant art in order to confront Ionia's criminals and comfort their victims."
+  },
+  {
+    "championName": "Illaoi",
+    "quote": "the Kraken Priestess — ___'s powerful physique is dwarfed only by her indomitable faith."
+  },
+  {
+    "championName": "Irelia",
+    "quote": "the Blade Dancer — The Noxian occupation of Ionia produced many heroes, none more unlikely than young ___ of Navori."
+  },
+  {
+    "championName": "Ivern",
+    "quote": "the Green Father — ___ Bramblefoot, known to many as the Green Father, is a peculiar half man, half tree who roams Runeterra's forests, cultivating life everywhere he goes."
+  },
+  {
+    "championName": "Janna",
+    "quote": "the Storm's Fury — Armed with the power of Runeterra's gales, ___ is a mysterious, elemental wind spirit who protects the dispossessed of Zaun."
+  },
+  {
+    "championName": "Jarvan IV",
+    "quote": "the Exemplar of Demacia — Prince ___, scion of the Lightshield dynasty, is heir apparent to the throne of Demacia."
+  },
+  {
+    "championName": "Jax",
+    "quote": "Grandmaster at Arms — Unmatched in both his skill with unique armaments and his biting sarcasm, ___ is the last known weapons master of Icathia."
+  },
+  {
+    "championName": "Jayce",
+    "quote": "the Defender of Tomorrow — ___ Talis is a brilliant inventor who, along with his friend Viktor, made the first great discoveries in the field of hextech."
+  },
+  {
+    "championName": "Jhin",
+    "quote": "the Virtuoso — ___ is a meticulous criminal psychopath who believes murder is art."
+  },
+  {
+    "championName": "Jinx",
+    "quote": "the Loose Cannon — An unhinged and impulsive criminal from the undercity, ___ is haunted by the consequences of her past—but that doesn't stop her from bringing her own chaotic brand of pandemonium to Piltover and Zaun."
+  },
+  {
+    "championName": "K'Sante",
+    "quote": "the Pride of Nazumah — Defiant and courageous, ___ battles colossal beasts and ruthless Ascended to protect his home of Nazumah, a coveted oasis amid the sands of Shurima."
+  },
+  {
+    "championName": "Kai'Sa",
+    "quote": "Daughter of the Void — Claimed by the Void when she was only a child, ___ managed to survive through sheer tenacity and strength of will."
+  },
+  {
+    "championName": "Kalista",
+    "quote": "the Spear of Vengeance — A specter of wrath and retribution, ___ is the undying spirit of vengeance, an armored nightmare summoned from the Shadow Isles to hunt deceivers and traitors."
+  },
+  {
+    "championName": "Karma",
+    "quote": "the Enlightened One — No mortal exemplifies the spiritual traditions of Ionia more than ___."
+  },
+  {
+    "championName": "Karthus",
+    "quote": "the Deathsinger — The harbinger of oblivion, ___ is an undying spirit whose haunting songs are a prelude to the horror of his nightmarish appearance."
+  },
+  {
+    "championName": "Kassadin",
+    "quote": "the Void Walker — Cutting a burning swath through the darkest places of the world, ___ knows his days are numbered."
+  },
+  {
+    "championName": "Katarina",
+    "quote": "the Sinister Blade — Decisive in judgment and lethal in combat, ___ is a Noxian assassin of the highest caliber."
+  },
+  {
+    "championName": "Kayle",
+    "quote": "the Righteous — Born to a Targonian Aspect at the height of the Rune Wars, ___ honored her mother's legacy by fighting for justice on wings of divine flame."
+  },
+  {
+    "championName": "Kayn",
+    "quote": "the Shadow Reaper — A peerless practitioner of lethal shadow magic, Shieda ___ battles to achieve his true destiny—to one day lead the Order of Shadow into a new era of Ionian supremacy."
+  },
+  {
+    "championName": "Kennen",
+    "quote": "the Heart of the Tempest — More than just the lightning-quick enforcer of Ionian balance, ___ is the only yordle member of the Kinkou."
+  },
+  {
+    "championName": "Kha'Zix",
+    "quote": "the Voidreaver — The Void grows, and the Void adapts—in none of its myriad spawn are these truths more apparent than ___."
+  },
+  {
+    "championName": "Kindred",
+    "quote": "The Eternal Hunters — Separate, but never parted, ___ represents the twin essences of death."
+  },
+  {
+    "championName": "Kled",
+    "quote": "the Cantankerous Cavalier — A warrior as fearless as he is ornery, the yordle ___ embodies the furious bravado of Noxus."
+  },
+  {
+    "championName": "Kog'Maw",
+    "quote": "the Mouth of the Abyss — Belched forth from a rotting Void incursion deep in the wastelands of Icathia, ___ is an inquisitive yet putrid creature with a caustic, gaping mouth."
+  },
+  {
+    "championName": "LeBlanc",
+    "quote": "the Deceiver — Mysterious even to other members of the Black Rose cabal, ___ is but one of many names for a pale woman who has manipulated people and events since the earliest days of Noxus."
+  },
+  {
+    "championName": "Lee Sin",
+    "quote": "the Blind Monk — A master of Ionia's ancient martial arts, ___ is a principled fighter who channels the essence of the dragon spirit to face any challenge."
+  },
+  {
+    "championName": "Leona",
+    "quote": "the Radiant Dawn — Imbued with the fire of the sun, ___ is a holy warrior of the Solari who defends Mount Targon with her Zenith Blade and the Shield of Daybreak."
+  },
+  {
+    "championName": "Lillia",
+    "quote": "the Bashful Bloom — Intensely shy, the fae fawn ___ skittishly wanders Ionia's forests."
+  },
+  {
+    "championName": "Lissandra",
+    "quote": "the Ice Witch — ___'s magic twists the pure power of ice into something dark and terrible."
+  },
+  {
+    "championName": "Lucian",
+    "quote": "the Purifier — ___, a Sentinel of Light, is a grim hunter of wraiths and specters, pursuing them relentlessly and annihilating them with his twin relic pistols."
+  },
+  {
+    "championName": "Lulu",
+    "quote": "the Fae Sorceress — The yordle mage ___ is known for conjuring dreamlike illusions and fanciful creatures as she roams Runeterra with her fairy companion Pix."
+  },
+  {
+    "championName": "Lux",
+    "quote": "the Lady of Luminosity — Luxanna Crownguard hails from Demacia, an insular realm where magical abilities are viewed with fear and suspicion."
+  },
+  {
+    "championName": "Malphite",
+    "quote": "Shard of the Monolith — A massive creature of living stone, ___ struggles to impose blessed order on a chaotic world."
+  },
+  {
+    "championName": "Malzahar",
+    "quote": "the Prophet of the Void — A zealous seer dedicated to the unification of all life, ___ truly believes the newly emergent Void to be the path to Runeterra's salvation."
+  },
+  {
+    "championName": "Maokai",
+    "quote": "the Twisted Treant — ___ is a rageful, towering treant who fights the unnatural horrors of the Shadow Isles."
+  },
+  {
+    "championName": "Master Yi",
+    "quote": "the Wuju Bladesman — ___ has tempered his body and sharpened his mind, so that thought and action have become almost as one."
+  },
+  {
+    "championName": "Mel",
+    "quote": "the Soul's Reflection — ___ Medarda is the presumed heir of the Medarda family, once one of the most powerful in Noxus."
+  },
+  {
+    "championName": "Milio",
+    "quote": "The Gentle Flame — ___ is a warmhearted boy from Ixtal who has, despite his young age, mastered the fire axiom and discovered something new: soothing fire."
+  },
+  {
+    "championName": "Miss Fortune",
+    "quote": "the Bounty Hunter — A Bilgewater captain famed for her looks but feared for her ruthlessness, Sarah ___ paints a stark figure among the hardened criminals of the port city."
+  },
+  {
+    "championName": "Mordekaiser",
+    "quote": "the Iron Revenant — Twice slain and thrice born, ___ is a brutal warlord from a foregone epoch who uses his necromantic sorcery to bind souls into an eternity of servitude."
+  },
+  {
+    "championName": "Morgana",
+    "quote": "the Fallen — Conflicted between her celestial and mortal natures, ___ bound her wings to embrace humanity, and inflicts her pain and bitterness upon the dishonest and the corrupt."
+  },
+  {
+    "championName": "Naafiri",
+    "quote": "the Hound of a Hundred Bites — Across the sands of Shurima, a chorus of howls rings out."
+  },
+  {
+    "championName": "Nami",
+    "quote": "the Tidecaller — A headstrong young vastaya of the seas, ___ was the first of the Marai tribe to leave the waves and venture onto dry land, when their ancient accord with the Targonians was broken."
+  },
+  {
+    "championName": "Nasus",
+    "quote": "the Curator of the Sands — ___ is an imposing, jackal-headed Ascended being from ancient Shurima, a heroic figure regarded as a demigod by the people of the desert."
+  },
+  {
+    "championName": "Nautilus",
+    "quote": "the Titan of the Depths — A lonely legend as old as the first piers sunk in Bilgewater, the armored goliath known as ___ roams the dark waters off the coast of the Blue Flame Isles."
+  },
+  {
+    "championName": "Neeko",
+    "quote": "the Curious Chameleon — Hailing from a long lost tribe of vastaya, ___ can blend into any crowd by borrowing the appearances of others, even absorbing something of their emotional state to tell friend from foe in an instant."
+  },
+  {
+    "championName": "Nidalee",
+    "quote": "the Bestial Huntress — Raised in the deepest jungle, ___ is a master tracker who can shapeshift into a ferocious cougar at will."
+  },
+  {
+    "championName": "Nilah",
+    "quote": "the Joy Unbound — ___ is an ascetic warrior from a distant land, seeking the world's deadliest, most titanic opponents so that she might challenge and destroy them."
+  },
+  {
+    "championName": "Nocturne",
+    "quote": "the Eternal Nightmare — A demonic amalgamation drawn from the nightmares that haunt every sentient mind, the thing known as ___ has become a primordial force of pure evil."
+  },
+  {
+    "championName": "Nunu & Willump",
+    "quote": "the Boy and His Yeti — Once upon a time, there was a boy who wanted to prove he was a hero by slaying a fearsome monster—only to discover that the beast, a lonely and magical yeti, merely needed a friend."
+  },
+  {
+    "championName": "Olaf",
+    "quote": "the Berserker — An unstoppable force of destruction, the axe-wielding ___ wants nothing but to die in glorious combat."
+  },
+  {
+    "championName": "Orianna",
+    "quote": "the Lady of Clockwork — Once a curious girl of flesh and blood, ___ is now a technological marvel comprised entirely of clockwork."
+  },
+  {
+    "championName": "Ornn",
+    "quote": "The Fire below the Mountain — ___ is the Freljordian spirit of forging and craftsmanship."
+  },
+  {
+    "championName": "Pantheon",
+    "quote": "the Unbreakable Spear — Once an unwilling host to the Aspect of War, Atreus survived when the celestial power within him was slain, refusing to succumb to a blow that tore stars from the heavens."
+  },
+  {
+    "championName": "Poppy",
+    "quote": "Keeper of the Hammer — Runeterra has no shortage of valiant champions, but few are as tenacious as ___."
+  },
+  {
+    "championName": "Pyke",
+    "quote": "the Bloodharbor Ripper — A renowned harpooner from the slaughter docks of Bilgewater, ___ should have met his death in the belly of a gigantic jaull-fish… and yet, he returned."
+  },
+  {
+    "championName": "Qiyana",
+    "quote": "Empress of the Elements — In the jungle city of Ixaocan, ___ plots her own ruthless path to the high seat of the Yun Tal."
+  },
+  {
+    "championName": "Quinn",
+    "quote": "Demacia's Wings — ___ is an elite ranger-knight of Demacia, who undertakes dangerous missions deep in enemy territory."
+  },
+  {
+    "championName": "Rakan",
+    "quote": "The Charmer — As mercurial as he is charming, ___ is an infamous vastayan troublemaker and the greatest battle-dancer in Lhotlan tribal history."
+  },
+  {
+    "championName": "Rammus",
+    "quote": "the Armordillo — Idolized by many, dismissed by some, mystifying to all, the curious being ___ is an enigma."
+  },
+  {
+    "championName": "Rek'Sai",
+    "quote": "the Void Burrower — An apex predator, ___ is a merciless Void-spawn that tunnels beneath the ground to ambush and devour unsuspecting prey."
+  },
+  {
+    "championName": "Rell",
+    "quote": "the Iron Maiden — The product of brutal experimentation at the hands of the Black Rose, ___ is a defiant, living weapon determined to topple Noxus."
+  },
+  {
+    "championName": "Renata Glasc",
+    "quote": "the Chem-Baroness — ___ rose from the ashes of her childhood home with nothing but her name and her parents' alchemical research."
+  },
+  {
+    "championName": "Renekton",
+    "quote": "the Butcher of the Sands — ___ is a terrifying, rage-fueled Ascended being from the scorched deserts of Shurima."
+  },
+  {
+    "championName": "Rengar",
+    "quote": "the Pridestalker — ___ is a ferocious vastayan trophy hunter who lives for the thrill of tracking down and killing dangerous creatures."
+  },
+  {
+    "championName": "Riven",
+    "quote": "the Exile — Once a swordmaster in the warhosts of Noxus, ___ is an expatriate in a land she previously tried to conquer."
+  },
+  {
+    "championName": "Rumble",
+    "quote": "the Mechanized Menace — ___ is a young inventor with a temper."
+  },
+  {
+    "championName": "Ryze",
+    "quote": "the Rune Mage — Widely considered one of the most adept sorcerers on Runeterra, ___ is an ancient, hard-bitten archmage with an impossibly heavy burden to bear."
+  },
+  {
+    "championName": "Samira",
+    "quote": "the Desert Rose — ___ stares death in the eye with unyielding confidence, seeking thrill wherever she goes."
+  },
+  {
+    "championName": "Sejuani",
+    "quote": "Fury of the North — ___ is the brutal, unforgiving Iceborn warmother of the Winter's Claw, one of the most feared tribes of the Freljord."
+  },
+  {
+    "championName": "Senna",
+    "quote": "the Redeemer — Cursed from childhood to be haunted by the supernatural Black Mist, ___ joined a sacred order known as the Sentinels of Light, and fiercely fought back—only to be killed, her soul imprisoned in a lantern by the cruel specter Thresh."
+  },
+  {
+    "championName": "Seraphine",
+    "quote": "the Starry-Eyed Songstress — Born in Piltover to Zaunite parents, ___ can hear the souls of others—the world sings to her, and she sings back."
+  },
+  {
+    "championName": "Sett",
+    "quote": "the Boss — A leader of Ionia's growing criminal underworld, ___ rose to prominence in the wake of the war with Noxus."
+  },
+  {
+    "championName": "Shaco",
+    "quote": "the Demon Jester — Crafted long ago as a plaything for a lonely prince, the enchanted marionette ___ now delights in murder and mayhem."
+  },
+  {
+    "championName": "Shen",
+    "quote": "the Eye of Twilight — Among the secretive, Ionian warriors known as the Kinkou, ___ serves as their leader, the Eye of Twilight."
+  },
+  {
+    "championName": "Shyvana",
+    "quote": "the Half-Dragon — ___ is a fearsome half-dragon warrior."
+  },
+  {
+    "championName": "Singed",
+    "quote": "the Mad Chemist — ___ is a brilliant alchemist of dubious morality, whose experiments would turn the stomach of even the most cutthroat criminal."
+  },
+  {
+    "championName": "Sion",
+    "quote": "The Undead Juggernaut — A war hero from a bygone era, ___ was revered in Noxus for choking the life out of a Demacian king with his bare hands—but, denied oblivion, he was resurrected to serve his empire even in death."
+  },
+  {
+    "championName": "Sivir",
+    "quote": "the Battle Mistress — ___ is a renowned fortune hunter and mercenary captain who plies her trade in the deserts of Shurima."
+  },
+  {
+    "championName": "Skarner",
+    "quote": "the Primordial Sovereign — The ancient, colossal brackern ___ is revered in Ixtal as one of the founding members of its ruling caste, the Yun Tal."
+  },
+  {
+    "championName": "Smolder",
+    "quote": "the Fiery Fledgling — Hidden amongst the craggy cliffs of the Noxian frontier, under the watchful eyes of his mother, a young dragon is learning what it means to be heir to the Camavoran imperial dragon lineage."
+  },
+  {
+    "championName": "Sona",
+    "quote": "Maven of the Strings — ___ is Demacia's foremost virtuoso of the stringed etwahl, speaking only through her graceful chords and vibrant arias."
+  },
+  {
+    "championName": "Soraka",
+    "quote": "the Starchild — A wanderer from the celestial dimensions beyond Mount Targon, ___ gave up her immortality to protect the mortal races from their own more violent instincts."
+  },
+  {
+    "championName": "Swain",
+    "quote": "the Noxian Grand General — Jericho ___ is the visionary ruler of Noxus, an expansionist nation that reveres only strength."
+  },
+  {
+    "championName": "Sylas",
+    "quote": "the Unshackled — Raised in one of Demacia's lesser quarters, ___ of Dregbourne has come to symbolize the darker side of the Great City."
+  },
+  {
+    "championName": "Syndra",
+    "quote": "the Dark Sovereign — ___ is a fearsome Ionian mage with incredible power at her command."
+  },
+  {
+    "championName": "Tahm Kench",
+    "quote": "The River King — Known by many names throughout history, the demon ___ travels the waterways of Runeterra, feeding his insatiable appetite with the misery of others."
+  },
+  {
+    "championName": "Taliyah",
+    "quote": "the Stoneweaver — ___ is a nomadic mage from Shurima, torn between teenage wonder and adult responsibility."
+  },
+  {
+    "championName": "Talon",
+    "quote": "the Blade's Shadow — ___ is the knife in the darkness, a merciless killer able to strike without warning and escape before any alarm is raised."
+  },
+  {
+    "championName": "Taric",
+    "quote": "the Shield of Valoran — ___ is the Aspect of the Protector, wielding incredible power as Runeterra's guardian of life, love, and beauty."
+  },
+  {
+    "championName": "Teemo",
+    "quote": "the Swift Scout — Undeterred by even the most dangerous and threatening of obstacles, ___ scouts the world with boundless enthusiasm and a cheerful spirit."
+  },
+  {
+    "championName": "Thresh",
+    "quote": "the Chain Warden — Sadistic and cunning, ___ is an ambitious and restless specter of the Shadow Isles."
+  },
+  {
+    "championName": "Tristana",
+    "quote": "the Yordle Gunner — While many other yordles channel their energy into discovery, invention, or just plain mischief-making, ___ was always inspired by the adventures of great warriors."
+  },
+  {
+    "championName": "Trundle",
+    "quote": "the Troll King — ___ is a hulking and devious troll with a particularly vicious streak, and there is nothing he cannot bludgeon into submission—not even the Freljord itself."
+  },
+  {
+    "championName": "Tryndamere",
+    "quote": "the Barbarian King — Fueled by unbridled fury and rage, ___ once carved his way through the Freljord, openly challenging the greatest warriors of the north to prepare himself for even darker days ahead."
+  },
+  {
+    "championName": "Twisted Fate",
+    "quote": "the Card Master — ___ is an infamous cardsharp and swindler who has gambled and charmed his way across much of the known world, earning the enmity and admiration of the rich and foolish alike."
+  },
+  {
+    "championName": "Twitch",
+    "quote": "the Plague Rat — A Zaunite plague rat by birth, but a connoisseur of filth by passion, ___ is not afraid to get his paws dirty."
+  },
+  {
+    "championName": "Udyr",
+    "quote": "the Spirit Walker — The most powerful spirit walker alive, ___ communes with all the spirits of the Freljord, whether by empathically understanding their needs, or by channeling and transforming their ethereal energy into his own primal fighting style."
+  },
+  {
+    "championName": "Urgot",
+    "quote": "the Dreadnought — Once a powerful Noxian headsman, ___ was betrayed by the empire for which he had killed so many."
+  },
+  {
+    "championName": "Varus",
+    "quote": "the Arrow of Retribution — One of the ancient darkin, ___ was a deadly killer who loved to torment his foes, driving them almost to insanity before delivering the killing arrow."
+  },
+  {
+    "championName": "Vayne",
+    "quote": "the Night Hunter — Shauna ___ is a deadly, remorseless Demacian monster hunter, who has dedicated her life to finding and destroying the demon that murdered her family."
+  },
+  {
+    "championName": "Veigar",
+    "quote": "the Tiny Master of Evil — An enthusiastic master of dark sorcery, ___ has embraced powers that few mortals dare approach."
+  },
+  {
+    "championName": "Vel'Koz",
+    "quote": "the Eye of the Void — It is unclear if ___ was the first Void-spawn to emerge on Runeterra, but there has certainly never been another to match his level of cruel, calculating sentience."
+  },
+  {
+    "championName": "Vex",
+    "quote": "the Gloomist — In the black heart of the Shadow Isles, a lone yordle trudges through the spectral fog, content in its murky misery."
+  },
+  {
+    "championName": "Vi",
+    "quote": "the Piltover Enforcer — ___Raised___ ___on___ ___the___ ___mean___ ___streets___ ___of___ ___Zaun___, ___Vi___ ___is___ ___a___ ___hotheaded___, ___impulsive___, ___and___ ___fearsome___ ___woman___ ___with___ ___very___ ___little___ ___respect___ ___for___ ___authority___."
+  },
+  {
+    "championName": "Viego",
+    "quote": "The Ruined King — Once ruler of a long-lost kingdom, ___ perished over a thousand years ago when his attempt to bring his wife back from the dead triggered the magical catastrophe known as the Ruination."
+  },
+  {
+    "championName": "Viktor",
+    "quote": "the Herald of the Arcane — The fully biomechanical evolution of his former self, ___ has embraced his Glorious Evolution and become something of a messiah to his followers."
+  },
+  {
+    "championName": "Vladimir",
+    "quote": "the Crimson Reaper — A fiend with a thirst for mortal blood, ___ has influenced the affairs of Noxus since the empire's earliest days."
+  },
+  {
+    "championName": "Volibear",
+    "quote": "the Relentless Storm — To those who still revere him, the ___ is the storm made manifest."
+  },
+  {
+    "championName": "Warwick",
+    "quote": "the Uncaged Wrath of Zaun — ___ is a monster who hunts the gray alleys of Zaun."
+  },
+  {
+    "championName": "Wukong",
+    "quote": "the Monkey King — ___ is a vastayan trickster who uses his strength, agility, and intelligence to confuse his opponents and gain the upper hand."
+  },
+  {
+    "championName": "Xayah",
+    "quote": "the Rebel — Deadly and precise, ___ is a vastayan revolutionary waging a personal war to save her people."
+  },
+  {
+    "championName": "Xerath",
+    "quote": "the Magus Ascendant — ___ is an Ascended Magus of ancient Shurima, a being of arcane energy writhing in the broken shards of a magical sarcophagus."
+  },
+  {
+    "championName": "Xin Zhao",
+    "quote": "the Seneschal of Demacia — ___ is a resolute warrior loyal to the ruling Lightshield dynasty."
+  },
+  {
+    "championName": "Yasuo",
+    "quote": "the Unforgiven — An Ionian of deep resolve, ___ is an agile swordsman who wields the air itself against his enemies."
+  },
+  {
+    "championName": "Yone",
+    "quote": "the Unforgotten — In life, he was ___—half-brother of Yasuo, and renowned student of his village's sword school."
+  },
+  {
+    "championName": "Yorick",
+    "quote": "Shepherd of Souls — The last survivor of a long-forgotten religious order, ___ is both blessed and cursed with power over the dead."
+  },
+  {
+    "championName": "Yunara",
+    "quote": "the Unbroken Faith — Unwavering in her devotion to Ionia, ___ has spent centuries cloistered away in the spirit realm honing her skills with the Aion Er'na, a legendary Kinkou relic."
+  },
+  {
+    "championName": "Yuumi",
+    "quote": "the Magical Cat — A magical cat from Bandle City, ___ was once the familiar of a yordle enchantress, Norra."
+  },
+  {
+    "championName": "Zaahen",
+    "quote": "The Unsundered — A fallen god wielding both divine and profane power, ___ hunts his fellow Darkin while defying the corruption that threatens to consume him."
+  },
+  {
+    "championName": "Zac",
+    "quote": "the Secret Weapon — ___ is the product of a toxic spill that ran through a chemtech seam and pooled in an isolated cavern deep in Zaun's Sump."
+  },
+  {
+    "championName": "Zed",
+    "quote": "the Master of Shadows — Utterly ruthless and without mercy, ___ is the leader of the Order of Shadow, an organization he created with the intent of militarizing Ionia's magical and martial traditions to drive out Noxian invaders."
+  },
+  {
+    "championName": "Zeri",
+    "quote": "The Spark of Zaun — A headstrong, spirited young woman from Zaun's working-class, ___ channels her electric magic to charge herself and her custom-crafted gun."
+  },
+  {
+    "championName": "Ziggs",
+    "quote": "the Hexplosives Expert — With a love of big bombs and short fuses, the yordle ___ is an explosive force of nature."
+  },
+  {
+    "championName": "Zilean",
+    "quote": "the Chronokeeper — Once a powerful Icathian mage, ___ became obsessed with the passage of time after witnessing his homeland's destruction by the Void."
+  },
+  {
+    "championName": "Zoe",
+    "quote": "the Aspect of Twilight — As the embodiment of mischief, imagination, and change, ___ acts as the cosmic messenger of Targon, heralding major events that reshape worlds."
+  },
+  {
+    "championName": "Zyra",
+    "quote": "Rise of the Thorns — Born in an ancient, sorcerous catastrophe, ___ is the wrath of nature given form—an alluring hybrid of plant and human, kindling new life with every step."
+  }
+]
