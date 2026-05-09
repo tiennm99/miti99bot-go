@@ -30,3 +30,6 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Claude Code agent runtime state (settings.json IS checked in; this isn't)
+.claude/agent-memory/
