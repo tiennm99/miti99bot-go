@@ -6,6 +6,7 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"github.com/tiennm99/miti99bot-go/internal/ai"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
@@ -76,6 +77,8 @@ type Deps struct {
 	KV       storage.KVStore   // already prefixed with the module name when passed to a Factory
 	Env      map[string]string // empty by default; per-module allowlist (Phase 07+)
 	Registry *Registry         // populated by Build; safe to capture but read-only at module use
+	Embedder ai.Embedder       // nil if GEMINI_API_KEY unset; semantle/doantu must check
+	Chatter  ai.Chatter        // nil if GEMINI_API_KEY unset; twentyq must check
 }
 
 // Factory constructs a Module from its Deps. Spec deviation: Phase 03 plan

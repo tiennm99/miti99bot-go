@@ -41,7 +41,7 @@ func TestRenderHelp_GroupsByModuleAndSkipsPrivate(t *testing.T) {
 			cmd("b_amp", modules.VisibilityPublic, `Tom & "Jerry"`),
 		}),
 	}
-	reg, err := modules.Build([]string{"alpha", "beta"}, factories, storage.NewMemoryProvider(), nil)
+	reg, err := modules.Build([]string{"alpha", "beta"}, factories, storage.NewMemoryProvider(), nil, modules.BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestRenderHelp_ModuleOrderMatchesEnvOrder(t *testing.T) {
 	}
 
 	// MODULES order: second,first → expect "second" section before "first".
-	reg, err := modules.Build([]string{"second", "first"}, factories, storage.NewMemoryProvider(), nil)
+	reg, err := modules.Build([]string{"second", "first"}, factories, storage.NewMemoryProvider(), nil, modules.BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestRenderHelp_OmitsModulesWithNoVisibleCommands(t *testing.T) {
 			cmd("seen", modules.VisibilityPublic),
 		}),
 	}
-	reg, err := modules.Build([]string{"shadow", "visible"}, factories, storage.NewMemoryProvider(), nil)
+	reg, err := modules.Build([]string{"shadow", "visible"}, factories, storage.NewMemoryProvider(), nil, modules.BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}

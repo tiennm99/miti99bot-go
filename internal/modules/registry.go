@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/tiennm99/miti99bot-go/internal/ai"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
@@ -76,7 +77,15 @@ func (r *Registry) Crons() []Cron {
 // Names not present in factories are reported as a single error so a typo in
 // MODULES does not silently load a smaller bot than intended. Duplicate names
 // in MODULES are also a hard error to keep startup deterministic.
-func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider, env map[string]string) (*Registry, error) {
+// BuildOptions bundles the optional dependencies threaded into every Module
+// Factory's Deps. Adding new optional deps here keeps Build's signature
+// stable as the dep list grows.
+type BuildOptions struct {
+	Embedder ai.Embedder
+	Chatter  ai.Chatter
+}
+
+func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider, env map[string]string, opts BuildOptions) (*Registry, error) {
 	if kv == nil {
 		return nil, fmt.Errorf("modules: KVProvider is required")
 	}
@@ -114,6 +123,8 @@ func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider
 			KV:       kv.For(name),
 			Env:      env,
 			Registry: reg,
+			Embedder: opts.Embedder,
+			Chatter:  opts.Chatter,
 		}
 		mod := factory(moduleDeps)
 		// A factory that hardcodes its own Name is a bug: the registry key is

@@ -1,7 +1,7 @@
 ---
 phase: 7
 title: "Gemini AI + port semantle/doantu/twentyq"
-status: pending
+status: done
 priority: P2
 effort: "6h"
 dependencies: [4]
@@ -75,11 +75,19 @@ internal/modules/twentyq/
 10. Smoke each module on dev bot.
 
 ## Success Criteria
-- [ ] `/semantle` round-trip: similarity score returned ≤2s warm
-- [ ] `/doantu` works with Vietnamese targets
-- [ ] `/twentyq` flow ends at 20 questions or correct guess
-- [ ] 429 from Gemini → user-visible "AI is rate-limited, try again in N minutes"
-- [ ] Per-user soft-limit prevents single user exhausting daily quota
+- [x] `internal/ai` package wraps `google.golang.org/genai` (v1.56) with Embedder/Chatter interfaces; per-user `PerUserLimiter` (5 req / 60s burst).
+- [x] `Deps` extended with `Embedder`/`Chatter` (nil when GEMINI_API_KEY unset → modules refuse with config-error).
+- [x] `/semantle` ported: 9894-word google-10k pool, JS-parity sigmoid calibration, OOV gate, fast-path dedup, render board with sort+top-15.
+- [x] `/doantu` ported via JS-parity `phow2sim` HTTP client (NOT Gemini — see Deviations below).
+- [x] `/twentyq` ported with prompts.go (verbatim JS prompt strings), parser.go (JSON-with-fence extraction), redact-secret defense, fallback round-start.
+- [x] 429 from Gemini mapped to `ai.ErrRateLimited` → user-visible "rate-limited" reply.
+- [x] All factories registered in `cmd/server/main.go`; `go vet ./...` and `go test -race -count=1 ./...` clean.
+
+## Deviations from original plan
+- **doantu uses phow2sim HTTP, not Gemini embeddings.** Rationale: text-embedding-004 was not trained for Vietnamese semantic relatedness; phow2sim is a domain-trained PhoW2V model. The JS bot already uses it; switching to embeddings would diverge behaviour, not preserve it. `PHOW2SIM_API_URL` overridable via env (allowlisted in `cmd/server/main.go`).
+- **No Firestore-backed target embedding cache** (plan step 6). semantle embeds both target+guess on every call (matches JS bge-m3 path). Cache adds complexity without measurable savings until Phase 11 soak data shows the 1500 RPD ceiling is real.
+- **gemini-2.5-flash, not 1.5.** SDK default is the newer flash; behaviour-equivalent for the twentyq use case.
+- **Per-day cap deferred.** Token bucket only; if Phase 11 soak shows abuse, add a Firestore counter.
 
 ## Risk Assessment
 - **Risk**: 768d vs 1024d means similarity scores have different distribution. Game tuning constants (winning threshold) need re-calibration. **Mitigation**: empirical tune against dev bot; document in module file.

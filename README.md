@@ -11,7 +11,9 @@ Early scaffolding. See [`plans/260508-2222-go-port-cloud-run/plan.md`](plans/260
 | 01 | GCP setup, Cloud Run baseline | pending |
 | 02 | Repo bootstrap + webhook skeleton | **partial** (local pieces done; Cloud Run deploy deferred to Phase 01) |
 | 03 | Module framework + KVStore | **done** |
-| 04+ | Firestore, modules, cron, CI/CD, cutover | pending |
+| 04 | Firestore KV + provider abstraction | **done** |
+| 05–07 | Module ports (util/misc/wordle/loldle/lolschedule + AI: semantle/doantu/twentyq) | **done** |
+| 08+ | Trading, cron wiring, CI/CD, cutover | pending |
 
 ## Layout
 

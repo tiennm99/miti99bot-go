@@ -38,7 +38,7 @@ func factory(name string, cmds []Command, crons []Cron) Factory {
 func newProvider() storage.KVProvider { return storage.NewMemoryProvider() }
 
 func TestBuild_EmptyModulesBootsCleanly(t *testing.T) {
-	reg, err := Build(nil, map[string]Factory{}, newProvider(), nil)
+	reg, err := Build(nil, map[string]Factory{}, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build empty: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestBuild_LoadsRequestedModules(t *testing.T) {
 		"alpha": factory("alpha", []Command{noopCmd("a1")}, nil),
 		"beta":  factory("beta", []Command{noopCmd("b1")}, []Cron{noopCron("daily")}),
 	}
-	reg, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil)
+	reg, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestBuild_SkipsModulesNotInEnv(t *testing.T) {
 		"alpha": factory("alpha", []Command{noopCmd("a1")}, nil),
 		"beta":  factory("beta", []Command{noopCmd("b1")}, nil),
 	}
-	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestBuild_SkipsModulesNotInEnv(t *testing.T) {
 }
 
 func TestBuild_RejectsUnknownModule(t *testing.T) {
-	_, err := Build([]string{"ghost"}, map[string]Factory{}, newProvider(), nil)
+	_, err := Build([]string{"ghost"}, map[string]Factory{}, newProvider(), nil, BuildOptions{})
 	if err == nil || !strings.Contains(err.Error(), "ghost") {
 		t.Errorf("expected error mentioning ghost, got %v", err)
 	}
@@ -93,7 +93,7 @@ func TestBuild_DetectsCommandConflict(t *testing.T) {
 		"alpha": factory("alpha", []Command{noopCmd("ping")}, nil),
 		"beta":  factory("beta", []Command{noopCmd("ping")}, nil),
 	}
-	_, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil)
+	_, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil, BuildOptions{})
 	if err == nil {
 		t.Fatal("expected conflict error")
 	}
@@ -107,14 +107,14 @@ func TestBuild_DetectsCronConflict(t *testing.T) {
 		"alpha": factory("alpha", nil, []Cron{noopCron("daily")}),
 		"beta":  factory("beta", nil, []Cron{noopCron("daily")}),
 	}
-	_, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil)
+	_, err := Build([]string{"alpha", "beta"}, factories, newProvider(), nil, BuildOptions{})
 	if err == nil || !strings.Contains(err.Error(), "cron conflict") {
 		t.Errorf("expected cron conflict, got %v", err)
 	}
 }
 
 func TestBuild_RequiresProvider(t *testing.T) {
-	_, err := Build(nil, map[string]Factory{}, nil, nil)
+	_, err := Build(nil, map[string]Factory{}, nil, nil, BuildOptions{})
 	if err == nil {
 		t.Error("expected error when KVProvider is nil")
 	}
@@ -125,7 +125,7 @@ func TestBuild_ValidationErrorsMentionModule(t *testing.T) {
 	factories := map[string]Factory{
 		"alpha": factory("alpha", []Command{bad}, nil),
 	}
-	_, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	_, err := Build([]string{"alpha"}, factories, newProvider(), nil, BuildOptions{})
 	if err == nil || !strings.Contains(err.Error(), "alpha") {
 		t.Errorf("expected error mentioning module 'alpha', got %v", err)
 	}
@@ -142,7 +142,7 @@ func TestDispatchScheduled_RunsHandler(t *testing.T) {
 			},
 		}}),
 	}
-	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestDispatchScheduled_RunsHandler(t *testing.T) {
 }
 
 func TestDispatchScheduled_UnknownReturnsErrCronNotFound(t *testing.T) {
-	reg, err := Build(nil, map[string]Factory{}, newProvider(), nil)
+	reg, err := Build(nil, map[string]Factory{}, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestDispatchScheduled_PassesPrefixedDeps(t *testing.T) {
 			}}}
 		},
 	}
-	reg, err := Build([]string{"alpha", "beta"}, factories, provider, nil)
+	reg, err := Build([]string{"alpha", "beta"}, factories, provider, nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestBuild_RejectsInvalidModuleName(t *testing.T) {
 	// prefix delimiter and a hyphen-allowing regex must not let it through.
 	for _, name := range []string{"BadName", "a:b", "", "with space", "with.dot", "with/slash"} {
 		t.Run(name, func(t *testing.T) {
-			_, err := Build([]string{name}, map[string]Factory{}, newProvider(), nil)
+			_, err := Build([]string{name}, map[string]Factory{}, newProvider(), nil, BuildOptions{})
 			if err == nil {
 				t.Errorf("name %q: expected error", name)
 			}
@@ -231,7 +231,7 @@ func TestBuild_RejectsFactoryNameMismatch(t *testing.T) {
 			return Module{Name: "imposter", Commands: []Command{noopCmd("a1")}}
 		},
 	}
-	_, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	_, err := Build([]string{"alpha"}, factories, newProvider(), nil, BuildOptions{})
 	if err == nil {
 		t.Fatal("expected error for factory Name mismatch")
 	}
@@ -248,7 +248,7 @@ func TestBuild_AllowsFactoryWithBlankName(t *testing.T) {
 			return Module{Commands: []Command{noopCmd("a1")}}
 		},
 	}
-	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestBuild_AcceptsHyphenatedModuleName(t *testing.T) {
 	factories := map[string]Factory{
 		"loldle-emoji": factory("loldle-emoji", []Command{noopCmd("emoji_cmd")}, nil),
 	}
-	reg, err := Build([]string{"loldle-emoji"}, factories, newProvider(), nil)
+	reg, err := Build([]string{"loldle-emoji"}, factories, newProvider(), nil, BuildOptions{})
 	if err != nil {
 		t.Fatalf("hyphenated name should be allowed: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestBuild_RejectsDuplicateModuleInEnv(t *testing.T) {
 	factories := map[string]Factory{
 		"alpha": factory("alpha", []Command{noopCmd("a1")}, nil),
 	}
-	_, err := Build([]string{"alpha", "alpha"}, factories, newProvider(), nil)
+	_, err := Build([]string{"alpha", "alpha"}, factories, newProvider(), nil, BuildOptions{})
 	if err == nil || !strings.Contains(err.Error(), "duplicate") {
 		t.Errorf("expected duplicate-module error, got %v", err)
 	}
@@ -297,7 +297,7 @@ func TestBuild_PerModulePrefixedKV(t *testing.T) {
 			return Module{Commands: []Command{noopCmd("b")}}
 		},
 	}
-	if _, err := Build([]string{"alpha", "beta"}, factories, provider, nil); err != nil {
+	if _, err := Build([]string{"alpha", "beta"}, factories, provider, nil, BuildOptions{}); err != nil {
 		t.Fatalf("Build: %v", err)
 	}
 
