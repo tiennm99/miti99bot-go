@@ -27,10 +27,14 @@ jobs:
         run: go vet ./...
 
       # golangci-lint-action v7 is required for golangci-lint v2.x.
+      # Pinning to v2.12.x because our .golangci.yml targets Go 1.25 and
+      # earlier v2.x releases were built against go1.24, which the lint
+      # config rejects with "Go language version used to build golangci-lint
+      # is lower than the targeted Go version".
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.2.2
+          version: v2.12.2
 
       # govulncheck is informational — failures don't block the build because
       # stdlib CVEs surface routinely until the runner image catches up to
