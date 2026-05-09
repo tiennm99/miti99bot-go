@@ -41,13 +41,15 @@ type Config struct {
 //	POST /webhook           → Telegram update intake (constant-time secret check)
 //	POST /cron/{name}       → Cloud Scheduler entry (shared-secret check; OIDC in Phase 09)
 //
-// Anything else is 404.
+// Anything else is 404. All routes pass through LogRequests so every
+// request emits a structured `req` log line (Cloud Logging consumes them
+// for 5xx-rate alerts and per-route latency).
 func New(cfg Config) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/", HealthHandler())
 	mux.Handle("/webhook", telegram.WebhookHandler(cfg.Bot, cfg.WebhookSecret))
 	mux.Handle("/cron/", cronHandler(cfg.Registry, cfg.CronSecret))
-	return mux
+	return LogRequests(mux)
 }
 
 func cronHandler(reg *modules.Registry, secret string) http.HandlerFunc {

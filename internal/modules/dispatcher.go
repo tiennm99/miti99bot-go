@@ -7,6 +7,7 @@ import (
 	"github.com/go-telegram/bot/models"
 
 	"github.com/tiennm99/miti99bot-go/internal/log"
+	"github.com/tiennm99/miti99bot-go/internal/metrics"
 )
 
 // Auth gates Protected/Private commands by sender Telegram user ID. Public
@@ -59,7 +60,9 @@ func Install(b *bot.Bot, reg *Registry, auth Auth) {
 				if !auth.Permits(cmdCopy.Visibility, update) {
 					return // silent — do not leak existence of gated commands
 				}
+				metrics.IncCommand(cmdCopy.Name)
 				if err := cmdCopy.Handler(ctx, b, update); err != nil {
+					metrics.IncError("handler-error")
 					log.Error("command failed", "command", cmdCopy.Name, "err", err)
 				}
 			},

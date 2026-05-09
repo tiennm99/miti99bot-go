@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tiennm99/miti99bot-go/internal/log"
+	"github.com/tiennm99/miti99bot-go/internal/metrics"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldleability"
@@ -61,6 +62,10 @@ func main() {
 
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Periodic metrics flush. Cancels with rootCtx and emits one final
+	// flush on shutdown so the trailing window isn't lost.
+	go metrics.Run(rootCtx)
 
 	provider, closeProvider, err := buildProvider(rootCtx, cfg)
 	if err != nil {

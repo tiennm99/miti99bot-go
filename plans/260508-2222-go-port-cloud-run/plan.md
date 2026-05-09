@@ -49,7 +49,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 | 08 | [Port trading + composite indexes](phase-08-port-trading.md) | pending | 6h | VN-stocks paper trading + daily price cron |
 | 09 | [Cloud Scheduler cron wiring](phase-09-cloud-scheduler.md) | pending | 2h | 2 jobs → `/cron/{name}` with OIDC |
 | 10 | [CI/CD + Dockerfile + Secret Manager](phase-10-ci-cd.md) | pending | 4h | GHA pipeline → AR → Cloud Run, idempotent |
-| 11 | [Test parity + observability](phase-11-tests-observability.md) | pending | 4h | Unit tests ported, Cloud Logging structured JSON |
+| 11 | [Test parity + observability](phase-11-tests-observability.md) | partial | 4h | Code-side done: `internal/log` (slog JSON), request log middleware, `internal/metrics` counters + 60s flush, dispatcher instrumented. 48h soak + cold-start measurement + log-based metrics setup deferred to post-deploy. |
 | 12 | [Cutover + decommission CF Worker](phase-12-cutover.md) | pending | 3h | Prod webhook flipped, soak passed, Worker retired |
 
 ## Dependency graph
