@@ -14,6 +14,10 @@ var moduleNameRe = commandNameRe // alias kept for symmetry; one regex serves bo
 
 // Registry holds the resolved set of modules selected by the MODULES env var.
 // It is built once at startup; Build fails fast on validation or conflict.
+//
+// Read-only after Build returns. Callers must not mutate any field —
+// dispatchers and handlers capture *Registry by pointer and assume the maps
+// are stable. A future hot-reload feature would need an explicit mutation API.
 type Registry struct {
 	Modules     []Module           // in MODULES-env order
 	AllCommands map[string]Command // name → Command, deduped across modules
@@ -101,8 +105,9 @@ func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider
 		}
 
 		moduleDeps := Deps{
-			KV:  kv.For(name),
-			Env: env,
+			KV:       kv.For(name),
+			Env:      env,
+			Registry: reg,
 		}
 		mod := factory(moduleDeps)
 		mod.Name = name // enforce: module name is its registry key, not whatever the factory chose

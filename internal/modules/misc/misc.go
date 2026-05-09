@@ -1,0 +1,100 @@
+// Package misc is a small stub module that proves the framework end-to-end:
+// /ping (public, exercises KV write), /mstats (protected, exercises KV read),
+// /fortytwo (private easter egg).
+package misc
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
+
+	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/storage"
+)
+
+// lastPingKey is the per-module KV key /ping writes and /mstats reads.
+const lastPingKey = "last_ping"
+
+// lastPing mirrors the JS bot's wire format: { at: <ms-since-epoch number> }.
+// Stored as int64 ms-epoch (not time.Time → RFC3339) so a future cross-runtime
+// KV export/import migration round-trips byte-for-byte.
+type lastPing struct {
+	At int64 `json:"at"`
+}
+
+// New is the module Factory. Captures the per-module Deps via closure so each
+// command handler has direct access to its KV store.
+func New(deps modules.Deps) modules.Module {
+	return modules.Module{
+		Commands: []modules.Command{
+			pingCommand(deps),
+			mstatsCommand(deps),
+			fortytwoCommand(),
+		},
+	}
+}
+
+func pingCommand(deps modules.Deps) modules.Command {
+	return modules.Command{
+		Name:        "ping",
+		Visibility:  modules.VisibilityPublic,
+		Description: "Health check — replies pong and records last ping",
+		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			// Best-effort write — if KV is unavailable, still reply.
+			payload := lastPing{At: time.Now().UTC().UnixMilli()}
+			if err := deps.KV.PutJSON(ctx, lastPingKey, payload); err != nil {
+				log.Printf("misc /ping: putJSON failed: %v", err)
+			}
+			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "pong",
+			})
+			return err
+		},
+	}
+}
+
+func mstatsCommand(deps modules.Deps) modules.Command {
+	return modules.Command{
+		Name:        "mstats",
+		Visibility:  modules.VisibilityProtected,
+		Description: "Show the timestamp of the last /ping",
+		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			var last lastPing
+			text := "last ping: never"
+			err := deps.KV.GetJSON(ctx, lastPingKey, &last)
+			switch {
+			case err == nil && last.At > 0:
+				text = fmt.Sprintf("last ping: %s",
+					time.UnixMilli(last.At).UTC().Format(time.RFC3339))
+			case err != nil && !errors.Is(err, storage.ErrNotFound):
+				return fmt.Errorf("misc /mstats: %w", err)
+			}
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   text,
+			})
+			return err
+		},
+	}
+}
+
+func fortytwoCommand() modules.Command {
+	return modules.Command{
+		Name:        "fortytwo",
+		Visibility:  modules.VisibilityPrivate,
+		Description: "Easter egg — the answer",
+		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "The answer.",
+			})
+			return err
+		},
+	}
+}

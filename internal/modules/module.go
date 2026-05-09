@@ -59,14 +59,20 @@ type Module struct {
 }
 
 // Deps is the dependency bundle a Factory receives. Each field is added in the
-// phase that introduces it; today only KV + Env exist (Firestore: Phase 04,
-// Gemini: Phase 07).
+// phase that introduces it; today KV, Env, and Registry exist (Gemini: Phase 07).
 //
 // Deps.Env is the process environment with sensitive keys stripped. Modules
 // must not assume Env contains every variable — see cmd/server.envForModules.
+//
+// Deps.Registry is a pointer to the Registry being built. At factory call
+// time the Registry is partially populated (only modules earlier in the
+// MODULES env order); by the time any handler runs, it is fully populated.
+// Modules that need to introspect commands (e.g. /help) capture this pointer
+// in their handler closures.
 type Deps struct {
-	KV  storage.KVStore   // already prefixed with the module name when passed to a Factory
-	Env map[string]string // process env minus known-sensitive keys
+	KV       storage.KVStore   // already prefixed with the module name when passed to a Factory
+	Env      map[string]string // process env minus known-sensitive keys
+	Registry *Registry         // populated by Build; safe to capture but read-only at module use
 }
 
 // Factory constructs a Module from its Deps. Spec deviation: Phase 03 plan

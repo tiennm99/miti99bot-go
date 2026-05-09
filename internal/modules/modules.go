@@ -1,10 +1,8 @@
 package modules
 
-// Factories is the static module catalog. Each phase that introduces a module
-// adds an entry here. Phase 03 ships an empty catalog; Phase 05 onwards
-// populates it.
+// This file used to hold a static `Factories` catalog. With concrete modules
+// now living in subpackages (internal/modules/util, /misc, …), keeping the
+// catalog here would create an import cycle (modules → util → modules).
 //
-// Spec deviation: Phase 03 plan defined a `[]Factory` slice. A map keyed by
-// module name is required for Build() to honor the MODULES env CSV without a
-// linear scan, and prevents duplicate module names at compile-load time.
-var Factories = map[string]Factory{}
+// The composition root in cmd/server owns the catalog instead. Tests pass
+// their own catalog into Build, exercising only the modules they care about.

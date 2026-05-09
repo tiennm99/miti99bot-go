@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
+	"github.com/tiennm99/miti99bot-go/internal/modules/util"
 	"github.com/tiennm99/miti99bot-go/internal/server"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 	"github.com/tiennm99/miti99bot-go/internal/telegram"
@@ -23,6 +25,16 @@ var secretEnvKeys = []string{
 	"TELEGRAM_BOT_TOKEN",
 	"TELEGRAM_WEBHOOK_SECRET",
 	"CRON_SHARED_SECRET",
+}
+
+// factories is the static module catalog. Adding a new module is a one-line
+// change here. Lives in main rather than the modules package to avoid an
+// import cycle (modules → util → modules).
+func factories() map[string]modules.Factory {
+	return map[string]modules.Factory{
+		"util": util.New,
+		"misc": misc.New,
+	}
 }
 
 // firestoreInitTimeout caps client construction at startup. Cloud Run cold
@@ -53,7 +65,7 @@ func main() {
 		log.Fatalf("telegram bot init: %v", err)
 	}
 
-	reg, err := modules.Build(cfg.Modules, modules.Factories, provider, cfg.ModuleEnv)
+	reg, err := modules.Build(cfg.Modules, factories(), provider, cfg.ModuleEnv)
 	if err != nil {
 		log.Fatalf("module registry: %v", err)
 	}
