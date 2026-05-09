@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,9 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tiennm99/miti99bot-go/internal/ai"
 	"github.com/tiennm99/miti99bot-go/internal/log"
 	"github.com/tiennm99/miti99bot-go/internal/metrics"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/modules/doantu"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldleability"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldleemoji"
@@ -21,6 +24,8 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldlesplash"
 	"github.com/tiennm99/miti99bot-go/internal/modules/lolschedule"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
+	"github.com/tiennm99/miti99bot-go/internal/modules/semantle"
+	"github.com/tiennm99/miti99bot-go/internal/modules/twentyq"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util"
 	"github.com/tiennm99/miti99bot-go/internal/modules/wordle"
 	"github.com/tiennm99/miti99bot-go/internal/server"
@@ -33,22 +38,29 @@ import (
 // import cycle (modules → util → modules).
 func factories() map[string]modules.Factory {
 	return map[string]modules.Factory{
-		"util":         util.New,
-		"misc":         misc.New,
-		"wordle":       wordle.New,
+		"util":           util.New,
+		"misc":           misc.New,
+		"wordle":         wordle.New,
 		"loldle":         loldle.New,
 		"loldle-ability": loldleability.New,
 		"loldle-emoji":   loldleemoji.New,
 		"loldle-quote":   loldlequote.New,
 		"loldle-splash":  loldlesplash.New,
 		"lolschedule":    lolschedule.New,
+		"semantle":       semantle.New,
+		"doantu":         doantu.New,
+		"twentyq":        twentyq.New,
 	}
 }
 
-// firestoreInitTimeout caps client construction at startup. Cloud Run cold
-// start budget is 500ms target; firestore.NewClient is normally fast but
-// network blips can make it hang. Fail fast and let Cloud Run restart us.
+// firestoreInitTimeout caps Firestore client construction at startup. Cloud
+// Run cold start budget is 500ms target; firestore.NewClient is normally fast
+// but network blips can make it hang. Fail fast and let Cloud Run restart us.
 const firestoreInitTimeout = 10 * time.Second
+
+// dynamodbInitTimeout caps DynamoDB client construction at startup. Lambda
+// has a 10s init phase; we want to leave headroom for module wiring.
+const dynamodbInitTimeout = 5 * time.Second
 
 func main() {
 	cfg := loadConfig()
@@ -78,7 +90,23 @@ func main() {
 		log.Fatal("telegram bot init failed", "err", err)
 	}
 
-	reg, err := modules.Build(cfg.Modules, factories(), provider, cfg.ModuleEnv)
+	// Gemini is optional: modules that need it (semantle/twentyq) check
+	// for nil and refuse the command at handler time. A blank GEMINI_API_KEY
+	// is therefore not fatal — the rest of the bot still runs.
+	aiClient, err := ai.NewClient(rootCtx, cfg.GeminiAPIKey)
+	if err != nil && !errors.Is(err, ai.ErrNotConfigured) {
+		log.Fatal("gemini init failed", "err", err)
+	}
+	if aiClient == nil {
+		log.Warn("GEMINI_API_KEY unset; AI-backed modules will refuse commands")
+	} else {
+		log.Info("gemini client initialised")
+	}
+
+	reg, err := modules.Build(cfg.Modules, factories(), provider, cfg.ModuleEnv, modules.BuildOptions{
+		Embedder: aiClient,
+		Chatter:  aiClient,
+	})
 	if err != nil {
 		log.Fatal("module registry build failed", "err", err)
 	}
@@ -130,41 +158,74 @@ func main() {
 	}
 }
 
-// buildProvider picks the storage backend from env. Firestore is selected
-// when GOOGLE_CLOUD_PROJECT or FIRESTORE_EMULATOR_HOST is set; otherwise we
-// fall back to in-memory storage so a developer can run the bot without GCP.
+// buildProvider picks the storage backend. Selection order:
+//  1. Explicit KV_PROVIDER env (memory|firestore|dynamodb) wins.
+//  2. Auto-detect: AWS_LAMBDA_FUNCTION_NAME set → dynamodb; GOOGLE_CLOUD_PROJECT
+//     or FIRESTORE_EMULATOR_HOST set → firestore; otherwise memory.
 //
 // Returned closer is always non-nil and safe to call exactly once.
 func buildProvider(ctx context.Context, cfg config) (storage.KVProvider, func(), error) {
-	useFirestore := cfg.GCPProject != "" || cfg.FirestoreEmulatorHost != ""
-	if !useFirestore {
-		log.Warn("GOOGLE_CLOUD_PROJECT unset; using in-memory KV (data lost on restart)")
-		return storage.NewMemoryProvider(), func() {}, nil
-	}
-
-	// Emulator ignores the project ID but the SDK still requires *some*
-	// non-empty value; supply a placeholder so emulator-only local dev works.
-	projectID := cfg.GCPProject
-	if projectID == "" && cfg.FirestoreEmulatorHost != "" {
-		projectID = "miti99bot-emulator"
-	}
-
-	initCtx, cancel := context.WithTimeout(ctx, firestoreInitTimeout)
-	defer cancel()
-	client, err := storage.NewFirestoreClient(initCtx, projectID)
-	if err != nil {
-		return nil, func() {}, err
-	}
-	closer := func() {
-		if err := client.Close(); err != nil {
-			log.Error("firestore close failed", "err", err)
+	backend := strings.ToLower(strings.TrimSpace(cfg.KVProvider))
+	if backend == "" {
+		switch {
+		case os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "":
+			backend = "dynamodb"
+		case cfg.GCPProject != "" || cfg.FirestoreEmulatorHost != "":
+			backend = "firestore"
+		default:
+			backend = "memory"
 		}
 	}
-	log.Info("storage backend",
-		"backend", "firestore",
-		"project", projectID,
-		"emulator", cfg.FirestoreEmulatorHost)
-	return storage.NewFirestoreProvider(client), closer, nil
+
+	switch backend {
+	case "memory":
+		log.Warn("KV backend: in-memory (data lost on restart)")
+		return storage.NewMemoryProvider(), func() {}, nil
+
+	case "firestore":
+		// Emulator ignores the project ID but the SDK still requires *some*
+		// non-empty value; supply a placeholder so emulator-only local dev works.
+		projectID := cfg.GCPProject
+		if projectID == "" && cfg.FirestoreEmulatorHost != "" {
+			projectID = "miti99bot-emulator"
+		}
+		initCtx, cancel := context.WithTimeout(ctx, firestoreInitTimeout)
+		defer cancel()
+		client, err := storage.NewFirestoreClient(initCtx, projectID)
+		if err != nil {
+			return nil, func() {}, err
+		}
+		closer := func() {
+			if err := client.Close(); err != nil {
+				log.Error("firestore close failed", "err", err)
+			}
+		}
+		log.Info("storage backend",
+			"backend", "firestore",
+			"project", projectID,
+			"emulator", cfg.FirestoreEmulatorHost)
+		return storage.NewFirestoreProvider(client), closer, nil
+
+	case "dynamodb":
+		if cfg.DynamoDBTable == "" {
+			return nil, func() {}, errors.New("KV_PROVIDER=dynamodb requires DYNAMODB_TABLE")
+		}
+		initCtx, cancel := context.WithTimeout(ctx, dynamodbInitTimeout)
+		defer cancel()
+		client, err := storage.NewDynamoDBClient(initCtx, storage.DynamoDBEndpointFromEnv())
+		if err != nil {
+			return nil, func() {}, err
+		}
+		log.Info("storage backend",
+			"backend", "dynamodb",
+			"table", cfg.DynamoDBTable,
+			"endpoint_override", storage.DynamoDBEndpointFromEnv() != "")
+		// DynamoDB SDK v2 client has no Close; HTTP client uses the default pool.
+		return storage.NewDynamoDBProvider(client, cfg.DynamoDBTable), func() {}, nil
+
+	default:
+		return nil, func() {}, fmt.Errorf("unknown KV_PROVIDER %q (want memory|firestore|dynamodb)", backend)
+	}
 }
 
 type config struct {
@@ -174,10 +235,13 @@ type config struct {
 	CronSecret            string
 	GCPProject            string
 	FirestoreEmulatorHost string
+	GeminiAPIKey          string
 	Modules               []string
 	BotOwnerID            int64
 	AdminUserIDs          map[int64]bool
-	ModuleEnv             map[string]string // empty — modules opt in via per-module allowlist (Phase 07+)
+	ModuleEnv             map[string]string // per-module allowlist; only declared keys flow through
+	KVProvider            string            // empty = auto-detect; or "memory"|"firestore"|"dynamodb"
+	DynamoDBTable         string            // required when KVProvider=dynamodb
 }
 
 func loadConfig() config {
@@ -197,6 +261,14 @@ func loadConfig() config {
 	if n, err := strconv.Atoi(port); err != nil || n < 0 || n > 65535 {
 		log.Fatal("invalid PORT", "value", port)
 	}
+	// ModuleEnv is the per-module allowlist. Add a key here when a specific
+	// module needs it; it never auto-flows from process env. Today only
+	// PHOW2SIM_API_URL (doantu) is exposed — Gemini is wired through a typed
+	// dep, not env.
+	moduleEnv := map[string]string{}
+	if v := envMap["PHOW2SIM_API_URL"]; v != "" {
+		moduleEnv["PHOW2SIM_API_URL"] = v
+	}
 	return config{
 		Port:                  port,
 		TelegramBotToken:      envMap["TELEGRAM_BOT_TOKEN"],
@@ -204,10 +276,13 @@ func loadConfig() config {
 		CronSecret:            envMap["CRON_SHARED_SECRET"],
 		GCPProject:            envMap["GOOGLE_CLOUD_PROJECT"],
 		FirestoreEmulatorHost: envMap["FIRESTORE_EMULATOR_HOST"],
+		GeminiAPIKey:          envMap["GEMINI_API_KEY"],
 		Modules:               splitCSV(envMap["MODULES"]),
 		BotOwnerID:            parseInt64(envMap["BOT_OWNER_ID"]),
 		AdminUserIDs:          parseInt64Set(envMap["ADMIN_USER_IDS"]),
-		ModuleEnv:              map[string]string{}, // allowlist semantics — process env does not auto-flow
+		ModuleEnv:             moduleEnv,
+		KVProvider:            envMap["KV_PROVIDER"],
+		DynamoDBTable:         envMap["DYNAMODB_TABLE"],
 	}
 }
 
