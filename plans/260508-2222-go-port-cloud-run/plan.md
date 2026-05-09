@@ -44,7 +44,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 | 03 | [Module framework + storage interfaces](phase-03-module-framework.md) | done | 4h | Module/Command/Cron interfaces, registry, dispatcher |
 | 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | done | 4h | `FirestoreKVStore`, emulator tests, KVProvider abstraction (Memory + Firestore) |
 | 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | done | 6h | 4 KV-only modules at JS parity; shared `internal/keylock` extracted |
-| 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | partial | 5h | 6a loldle-emoji done; quote/ability/splash/lolschedule pending |
+| 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | done | 5h | All five sub-modules ported (emoji, quote, ability, splash, lolschedule); lolschedule daily-push cron deferred to Phase 09 |
 | 07 | [Gemini AI + port semantle/doantu/twentyq](phase-07-gemini-ai-modules.md) | pending | 6h | 3 AI modules with rate-limit handling |
 | 08 | [Port trading + composite indexes](phase-08-port-trading.md) | pending | 6h | VN-stocks paper trading + daily price cron |
 | 09 | [Cloud Scheduler cron wiring](phase-09-cloud-scheduler.md) | pending | 2h | 2 jobs → `/cron/{name}` with OIDC |

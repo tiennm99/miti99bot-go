@@ -71,16 +71,14 @@ This phase ships in five sub-cooks (one per module — each is large enough to r
 - **6b:** loldle-quote — quote-pool variant, default 6 guesses. ✅ (consumes the shared `chathelper` + `champname` packages extracted in fix-all-review-findings Phase 03)
 - **6c:** loldle-ability — DDragon ability-icon URL builder, sendPhoto reply, gameState gains a `slot` field so the same icon shows across guesses. ✅
 - **6d:** loldle-splash — DDragon splash URL, sendPhoto reply, gameState locks `skinId` so the same splash shows across guesses. Default 4 guesses. ✅
-- **6c (next):** loldle-ability — DDragon ability-icon URL builder, sendPhoto.
-- **6d (next):** loldle-splash — DDragon splash URL builder, sendPhoto.
-- **6e (next):** lolschedule — HTTP client to lolesports/leaguepedia API; no game state, different shape entirely.
+- **6e:** lolschedule — HTTP client to lolesports.com persisted API (cache-first with 60-min stale fallback), ICT-anchored date parsing (dd-mm-yyyy / dd/mm/yyyy / ddmmyyyy), today/week renderers, subscriber list. 5 user commands shipped. Daily-push cron deferred to Phase 09 (Cloud Scheduler) since `Deps` doesn't currently expose a `*bot.Bot` reference. ✅
 
 ## Success Criteria
 - [x] loldle-emoji responds to `/loldle_emoji`, `/loldle_emoji_giveup`, `/loldle_emoji_stats`, `/loldle_emoji_setmax`
 - [x] loldle-quote responds to `/loldle_quote`, `/loldle_quote_giveup`, `/loldle_quote_stats`, `/loldle_quote_setmax`
 - [x] loldle-ability responds to `/loldle_ability`, `/loldle_ability_giveup`, `/loldle_ability_stats`, `/loldle_ability_setmax`; sendPhoto path uses the DDragon icon URL directly
 - [x] loldle-splash responds to `/loldle_splash`, `/loldle_splash_giveup`, `/loldle_splash_stats`, `/loldle_splash_setmax`; sendPhoto path uses the DDragon splash URL directly
-- [ ] `/lolschedule today` matches JS behavior — deferred to 6e
+- [x] `/lolschedule [date]`, `/lolschedule_today`, `/lolschedule_week`, `/lolschedule_subscribe`, `/lolschedule_unsubscribe` match JS behavior; daily-push cron deferred to Phase 09
 - [x] All variants share consistent guess-count limits matching JS (emoji 5, quote 6 — JS parity)
 - [x] Ported tests pass for loldle-emoji + loldle-quote (lookup, state, render, JS-wire-format decode, handler integration)
 
