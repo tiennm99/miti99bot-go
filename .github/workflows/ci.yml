@@ -26,8 +26,38 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      # Start the Firestore emulator before tests so the storage package's
+      # FIRESTORE_EMULATOR_HOST-gated tests run instead of t.Skip-ing.
+      # gcloud is pre-installed on ubuntu-latest runners; the emulator is
+      # an optional component fetched on first start.
+      - name: start firestore emulator
+        run: |
+          gcloud --quiet components install beta cloud-firestore-emulator || true
+          nohup gcloud beta emulators firestore start \
+            --host-port=localhost:8090 \
+            --quiet > /tmp/firestore.log 2>&1 &
+          # Wait up to 60s for the emulator to bind.
+          for i in $(seq 1 60); do
+            if nc -z localhost 8090; then
+              echo "firestore emulator ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "firestore emulator failed to start"
+          cat /tmp/firestore.log
+          exit 1
+
       - name: go test
-        run: go test -race -count=1 ./...
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8090
+          GOOGLE_CLOUD_PROJECT: ci-test-project
+          # Keep test logs out of stdout to avoid drowning real failures.
+          LOG_LEVEL: error
+        run: go test -race -count=1 -coverprofile=cov.out ./...
+
+      - name: coverage summary
+        run: go tool cover -func=cov.out | tail -1
 
       - name: go build
         run: go build ./...
