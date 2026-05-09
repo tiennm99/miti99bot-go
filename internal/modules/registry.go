@@ -2,15 +2,21 @@ package modules
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
-// moduleNameRe enforces the same alphabet as command names so KV prefix
-// isolation is preserved (no ":" in module names → no prefix collision) and
-// the cron route's path segment regex matches.
-var moduleNameRe = commandNameRe // alias kept for symmetry; one regex serves both
+// moduleNameRe is intentionally looser than commandNameRe — it allows hyphen
+// so modules can keep their JS-source names verbatim (e.g. "loldle-emoji").
+// The crucial constraint is "no `:`" so the storage Prefixed wrapper's `:`
+// delimiter cannot be subverted; everything else is style.
+//
+// Telegram command names still need the stricter [a-z0-9_]{1,32} alphabet
+// (commandNameRe in validate.go). Cron route segments use their own regex in
+// internal/server/router.go and stay strict for log-injection safety.
+var moduleNameRe = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
 
 // Registry holds the resolved set of modules selected by the MODULES env var.
 // It is built once at startup; Build fails fast on validation or conflict.

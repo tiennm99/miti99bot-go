@@ -210,13 +210,29 @@ func TestDispatchScheduled_PassesPrefixedDeps(t *testing.T) {
 }
 
 func TestBuild_RejectsInvalidModuleName(t *testing.T) {
-	for _, name := range []string{"BadName", "with-dash", "a:b", ""} {
+	// `-` is intentionally allowed (loldle-emoji and friends carry hyphenated
+	// names from the JS source). `:` must stay rejected — it's the storage
+	// prefix delimiter and a hyphen-allowing regex must not let it through.
+	for _, name := range []string{"BadName", "a:b", "", "with space", "with.dot", "with/slash"} {
 		t.Run(name, func(t *testing.T) {
 			_, err := Build([]string{name}, map[string]Factory{}, newProvider(), nil)
 			if err == nil {
 				t.Errorf("name %q: expected error", name)
 			}
 		})
+	}
+}
+
+func TestBuild_AcceptsHyphenatedModuleName(t *testing.T) {
+	factories := map[string]Factory{
+		"loldle-emoji": factory("loldle-emoji", []Command{noopCmd("emoji_cmd")}, nil),
+	}
+	reg, err := Build([]string{"loldle-emoji"}, factories, newProvider(), nil)
+	if err != nil {
+		t.Fatalf("hyphenated name should be allowed: %v", err)
+	}
+	if len(reg.Modules) != 1 || reg.Modules[0].Name != "loldle-emoji" {
+		t.Errorf("module not registered correctly: %+v", reg.Modules)
 	}
 }
 
