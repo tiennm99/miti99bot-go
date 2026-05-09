@@ -69,16 +69,16 @@ internal/modules/loldle/
 8. Smoke test on Cloud Run with dev bot.
 
 ## Success Criteria
-- [ ] `/wordle`, `/wguess apple`, `/wgiveup`, `/wstats` work end-to-end (deferred to follow-up cook 5b)
+- [x] `/wordle`, `/wordle <word>`, `/wordle_new`, `/wordle_giveup`, `/wordle_stats` ported (commands renamed from spec's `/wguess` etc. to match JS source)
 - [ ] `/loldle`, `/lguess <champion>`, `/lgiveup` work (deferred to follow-up cook 5c)
-- [x] `/help` lists all loaded modules' public + protected commands (covers util + misc; will pick up wordle/loldle automatically once 5b/5c land)
-- [ ] All ported tests pass (count parity with JS suite where applicable) — partial: util/misc tests added; wordle/loldle pending
-- [ ] Image size stays ≤25 MiB after embedding word + champion data (deferred — current binary 17 MB without embeds)
+- [x] `/help` lists all loaded modules' public + protected commands (covers util + misc + wordle; picks up loldle automatically once 5c lands)
+- [x] All ported tests pass — wordle compare suite is verbatim port of JS vitest, plus extra coverage for pool exhaustion and race-free `pickRandom`
+- [x] Image size stays ≤25 MiB after embedding word data (binary still 17 MB; 88 KB dict embed is rounding error against the 10 MB Firestore SDK)
 
 ## Cook scope split
 This phase ships in three sub-cooks:
-- **5a (this cook):** util + misc — small, validates the module-loading pipeline end-to-end. ✅ done.
-- **5b (next):** wordle — 14k-word dict, scoring, sessions. ~500 LoC + data file.
+- **5a (done):** util + misc — small, validates the module-loading pipeline end-to-end. ✅
+- **5b (this cook):** wordle — 14855-word dict, scoring, sessions. ✅
 - **5c (next):** loldle classic — champion JSON, daily reset, attribute comparison. ~700 LoC + data file.
 
 ## Implementation deviations (5a)
@@ -87,8 +87,18 @@ This phase ships in three sub-cooks:
 - `misc.lastPing.At` stored as int64 ms-epoch (matches JS `Date.now()`) — preserves byte-for-byte KV parity for the future export-import migration.
 - Telegram-side handler tests intentionally skipped — would require a fake bot HTTP server for negligible coverage gain. Renderer + KV behaviour ARE tested.
 
-## Code review (5a)
-[Phase 5a review](reports/code-reviewer-260509-0813-phase5a-util-misc.md) — 1 critical (`/info` nil-deref), 2 high (1 informational + 1 perf-deferred), 4 mediums/lows. C1 and L2 (KV wire-format parity) fixed in same session; M1 doc, L3 escape-test, H1 thread-id comment also applied.
+## Implementation deviations (5b — wordle)
+- KV TTL: JS uses Cloudflare KV's `expirationTtl: 60*60*24*7`. Firestore has no equivalent per-doc TTL; `gameTTLSeconds` constant is informational. Old games linger — Phase 11 GC if needed.
+- `pickDaily` ported but unused (handlers call `pickRandom`). Kept for parity so future "daily wordle" mode is a one-line swap.
+- Added `subjectLocks` (per-subject `sync.Mutex` map) to serialise `Get → mutate → Put` in handlers. Cloudflare Workers' isolate model gave the JS source this for free; Go + Firestore needs explicit locking or two concurrent guesses to the same group chat silently lose one.
+- `pickRandom(words, nil)` falls through to `math/rand.Intn` (package-level, mutex-protected globals) instead of a singleton `*rand.Rand` so the bot dispatcher's per-update goroutines don't race on RNG state.
+- KV wire-format parity: `GameState.Giveup` always emitted (no omitempty); `Stats.LastResultAt` is `*int64` so unplayed accounts marshal as `null` matching JS shape; `StartedAt` is ms-epoch int64.
+- Subject IDs converted to strings for KV keys (`game:<subject>`); JS uses numbers but Cloudflare KV stringifies on the wire so Firestore round-trips identically.
+- Word-list loader panics on malformed embedded data — corrupt regen of `words.txt` is a build-time bug, not a runtime concern worth recovering from.
+
+## Code reviews
+- [Phase 5a review](reports/code-reviewer-260509-0813-phase5a-util-misc.md) — 1 critical (`/info` nil-deref), 2 high (1 informational + 1 perf-deferred), 4 mediums/lows. C1, L2, M1, L3, H1 doc applied.
+- [Phase 5b review](reports/code-reviewer-260509-0918-phase5b-wordle.md) — 1 critical (`defaultRNG` data race) + 2 high (Get-mutate-Put logical race; dead `debugPickerError`) + extra compare test + race test for `pickRandom`. All addressed in same session. Mediums (M1 giveup-on-never-played JS-faithful gotcha; M2 `subjectFor` test) deferred — JS-parity intentional.
 
 ## Risk Assessment
 - **Risk**: 14k-word file embedded → ~120 KiB. `go:embed` puts it in the binary; no runtime IO. Acceptable.
