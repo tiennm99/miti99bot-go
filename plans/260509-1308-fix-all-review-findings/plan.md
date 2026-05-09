@@ -29,7 +29,7 @@ Six phases ordered by risk-gate. Phase 1 must land before next merge (Dockerfile
 | 03 | [Shared helper extraction](phase-03-shared-helper-extraction.md) | done | 1-2h | `internal/modules/util/chathelper` + `internal/champname` (DRY) |
 | 04 | [Structured logging](phase-04-structured-logging.md) | done | 2-3h | `internal/log` slog.JSONHandler + 22-site rewire (forward-port from Phase 11) |
 | 05 | [Test coverage gaps](phase-05-test-coverage-gaps.md) | done | 6-8h | Handler integration tests (wordle/misc/util/loldle/loldleemoji) + Firestore emulator on CI — coverage 44.7% → 69.8% |
-| 06 | [Cleanup and tooling](phase-06-cleanup-and-tooling.md) | pending | 2-3h | File-size splits, golangci-lint, govulncheck, image-digest pinning, dead-code removal |
+| 06 | [Cleanup and tooling](phase-06-cleanup-and-tooling.md) | done | 2-3h | golangci-lint + govulncheck on CI, defensive guards (Module.Name, PORT, FirestoreProvider validate), dead-code removal. Docker digest pinning + LOC splits deferred (low value). |
 
 ## Key dependencies
 - Phase 03 must precede next module port in `260508-2222-go-port-cloud-run` (Phase 6b/7) so future modules don't compound helper drift.

@@ -116,7 +116,14 @@ func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider
 			Registry: reg,
 		}
 		mod := factory(moduleDeps)
-		mod.Name = name // enforce: module name is its registry key, not whatever the factory chose
+		// A factory that hardcodes its own Name is a bug: the registry key is
+		// the source of truth and a mismatch means the catalog and module
+		// disagree about identity. Surface the conflict rather than silently
+		// overwriting it.
+		if mod.Name != "" && mod.Name != name {
+			return nil, fmt.Errorf("module %q: factory returned mismatched Name=%q", name, mod.Name)
+		}
+		mod.Name = name
 
 		for _, cmd := range mod.Commands {
 			if err := validateCommand(cmd); err != nil {

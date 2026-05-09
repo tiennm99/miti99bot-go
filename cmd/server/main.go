@@ -178,6 +178,12 @@ func loadConfig() config {
 	if port == "" {
 		port = "8080"
 	}
+	// PORT must be numeric — http.Server constructs ":<port>" verbatim, so a
+	// junk value would surface only at ListenAndServe time. Fail fast here
+	// instead. Range check is delegated to http.Server (it handles 0/65535).
+	if n, err := strconv.Atoi(port); err != nil || n < 0 || n > 65535 {
+		log.Fatal("invalid PORT", "value", port)
+	}
 	return config{
 		Port:                  port,
 		TelegramBotToken:      envMap["TELEGRAM_BOT_TOKEN"],

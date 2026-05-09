@@ -223,6 +223,40 @@ func TestBuild_RejectsInvalidModuleName(t *testing.T) {
 	}
 }
 
+func TestBuild_RejectsFactoryNameMismatch(t *testing.T) {
+	// A factory that hardcodes its own name disagreeing with the registry key
+	// is a programming bug — surface it instead of silently overwriting.
+	factories := map[string]Factory{
+		"alpha": func(_ Deps) Module {
+			return Module{Name: "imposter", Commands: []Command{noopCmd("a1")}}
+		},
+	}
+	_, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	if err == nil {
+		t.Fatal("expected error for factory Name mismatch")
+	}
+	if !strings.Contains(err.Error(), "imposter") {
+		t.Errorf("error should mention mismatched name: %v", err)
+	}
+}
+
+func TestBuild_AllowsFactoryWithBlankName(t *testing.T) {
+	// Factory leaves Name blank; registry fills it from the key. Common,
+	// non-buggy pattern.
+	factories := map[string]Factory{
+		"alpha": func(_ Deps) Module {
+			return Module{Commands: []Command{noopCmd("a1")}}
+		},
+	}
+	reg, err := Build([]string{"alpha"}, factories, newProvider(), nil)
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	if reg.Modules[0].Name != "alpha" {
+		t.Errorf("blank-name factory: registered Name = %q, want 'alpha'", reg.Modules[0].Name)
+	}
+}
+
 func TestBuild_AcceptsHyphenatedModuleName(t *testing.T) {
 	factories := map[string]Factory{
 		"loldle-emoji": factory("loldle-emoji", []Command{noopCmd("emoji_cmd")}, nil),

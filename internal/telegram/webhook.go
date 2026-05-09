@@ -18,6 +18,7 @@ import (
 // secretTokenHeader is the case-insensitive HTTP header Telegram sets when it
 // POSTs an update to the webhook. It must equal the value passed to setWebhook.
 // See: https://core.telegram.org/bots/api#setwebhook
+// #nosec G101 — header name, not credential value
 const secretTokenHeader = "X-Telegram-Bot-Api-Secret-Token"
 
 // maxWebhookBody bounds inbound JSON. Telegram updates are well under 100 KiB

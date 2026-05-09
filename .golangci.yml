@@ -1,0 +1,60 @@
+# golangci-lint config. Aim: catch real bugs without becoming a style police —
+# `gofmt`, `errcheck`, `govet`, `staticcheck` cover correctness; `gosec` flags
+# common Go security mistakes; `unused`/`ineffassign` clean dead code; `gocyclo`
+# caps complexity to keep handlers tractable; `revive` is on but noisy
+# style-only rules (universal doc comments, etc.) are disabled.
+
+version: "2"
+
+run:
+  timeout: 5m
+  go: "1.25"
+
+linters:
+  enable:
+    - errcheck
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - revive
+    - staticcheck
+    - unused
+  settings:
+    gocyclo:
+      # handleLoldle / handleEmoji dispatch on game outcome (won / lost /
+      # ongoing) plus error returns; 19 reads cleaner inline than as 3 helpers.
+      min-complexity: 20
+    gosec:
+      excludes:
+        # G104 (unhandled errors) — already enforced via errcheck with
+        # project-tuned exclusions; gosec re-flags every case errcheck
+        # excludes (e.g. log writes, best-effort sticker sends).
+        - G104
+        # G404 (math/rand vs crypto/rand) — wordle/loldle picks are gameplay
+        # randomness, not security. Original review classified upgrade as
+        # non-issue (L5).
+        - G404
+    revive:
+      rules:
+        # Noisy + stylistic. We doc-comment exported types and non-obvious
+        # methods, but uniform doc on every getter creates maintenance debt.
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+        # Tests intentionally use named-but-unused parameters in mock factories
+        # for readability (`func(d Deps)` vs `func(_ Deps)`).
+        - name: unused-parameter
+          disabled: true
+  exclusions:
+    rules:
+      # Tests routinely pass dummy values, swallow errors from helpers, and
+      # use higher cyclomatic complexity in table-driven cases. Suppress the
+      # noisier linters in *_test.go without disabling them entirely.
+      - path: _test\.go
+        linters: [errcheck, gosec, gocyclo]
+
+issues:
+  max-same-issues: 0

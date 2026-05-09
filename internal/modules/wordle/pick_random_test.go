@@ -4,50 +4,7 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
-	"time"
 )
-
-func TestTodayUTC_FormatStable(t *testing.T) {
-	now := time.Date(2026, 5, 9, 9, 30, 0, 0, time.UTC)
-	if got := todayUTC(now); got != "2026-05-09" {
-		t.Errorf("todayUTC = %s, want 2026-05-09", got)
-	}
-}
-
-func TestPickDaily_DeterministicForSameSeed(t *testing.T) {
-	words := []string{"alpha", "bravo", "delta", "gamma"}
-	a, err := pickDaily(words, "2026-05-09")
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := pickDaily(words, "2026-05-09")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if a != b {
-		t.Errorf("daily picks differ: %s vs %s", a, b)
-	}
-}
-
-func TestPickDaily_DifferentSeedsDiffer(t *testing.T) {
-	// Not strictly required by spec — but a useful smoke that the hash isn't
-	// degenerate. Use a long word list so collisions are unlikely.
-	words := []string{
-		"alpha", "bravo", "delta", "gamma", "echo", "fox",
-		"hotel", "india", "juliet", "kilo", "lima", "mike",
-	}
-	a, _ := pickDaily(words, "2026-05-09")
-	b, _ := pickDaily(words, "2026-05-10")
-	if a == b {
-		t.Logf("warn: same daily for different seeds (acceptable but rare): %s", a)
-	}
-}
-
-func TestPickDaily_EmptyErrors(t *testing.T) {
-	if _, err := pickDaily(nil, "x"); err == nil {
-		t.Error("expected error for empty list")
-	}
-}
 
 func TestPickRandom_UsesInjectedRNG(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))

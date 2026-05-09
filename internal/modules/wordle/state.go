@@ -11,11 +11,9 @@ import (
 // MaxGuesses is the standard wordle round length.
 const MaxGuesses = 6
 
-// gameTTLSeconds matches the JS source's KV TTL — informational only. Cloud
-// Firestore has no native per-document TTL equivalent to Cloudflare KV; old
-// games linger until manually cleaned. Document the deviation rather than
-// scaffold a TTL cron we don't need today.
-const gameTTLSeconds = 60 * 60 * 24 * 7
+// Cloud Firestore has no native per-document TTL equivalent to Cloudflare KV
+// — saved games linger until manually cleaned. Out of scope today; tracked
+// in port plan as a future cron.
 
 // GuessRecord is one entry in a game's history. JSON shape locks JS parity:
 //
@@ -66,8 +64,7 @@ func loadGame(ctx context.Context, kv storage.KVStore, subject string) (*GameSta
 	}
 }
 
-// saveGame writes the round. TTL is not honored on Firestore (see comment on
-// gameTTLSeconds) — kept here as documentation of intent.
+// saveGame writes the round.
 func saveGame(ctx context.Context, kv storage.KVStore, subject string, g *GameState) error {
 	if err := kv.PutJSON(ctx, gameKey(subject), g); err != nil {
 		return fmt.Errorf("wordle saveGame: %w", err)

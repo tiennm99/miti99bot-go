@@ -3,7 +3,7 @@ package loldle
 import "testing"
 
 func TestAttemptFlavor(t *testing.T) {
-	const max = 8
+	const maxAttempts = 8
 	cases := map[int]string{
 		1: "First try!",
 		2: "Sharp!",
@@ -16,8 +16,8 @@ func TestAttemptFlavor(t *testing.T) {
 		9: "Phew — last one!", // attempt > max — defensive; matches JS >=
 	}
 	for attempt, want := range cases {
-		if got := attemptFlavor(attempt, max); got != want {
-			t.Errorf("attemptFlavor(%d, %d) = %q, want %q", attempt, max, got, want)
+		if got := attemptFlavor(attempt, maxAttempts); got != want {
+			t.Errorf("attemptFlavor(%d, %d) = %q, want %q", attempt, maxAttempts, got, want)
 		}
 	}
 }

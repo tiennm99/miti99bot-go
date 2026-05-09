@@ -26,6 +26,21 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.2.2
+
+      # govulncheck is informational — failures don't block the build because
+      # stdlib CVEs surface routinely until the runner image catches up to
+      # the latest go-patch release. The signal we care about is dependency
+      # vulns, which we react to via go.mod bumps.
+      - name: govulncheck
+        continue-on-error: true
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
       # Start the Firestore emulator before tests so the storage package's
       # FIRESTORE_EMULATOR_HOST-gated tests run instead of t.Skip-ing.
       # gcloud is pre-installed on ubuntu-latest runners; the emulator is

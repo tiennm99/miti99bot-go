@@ -94,6 +94,8 @@ func (rb *RecordingBot) Reset() {
 func (rb *RecordingBot) handle(w http.ResponseWriter, r *http.Request) {
 	method := apiMethodFromPath(r.URL.Path)
 
+	// 8 MiB cap — well above any realistic test payload but bounded for gosec.
+	// #nosec G120 — explicit upper bound above
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
