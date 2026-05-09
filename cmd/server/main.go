@@ -14,6 +14,7 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/log"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
+	"github.com/tiennm99/miti99bot-go/internal/modules/loldleability"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldleemoji"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldlequote"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
@@ -32,9 +33,10 @@ func factories() map[string]modules.Factory {
 		"util":         util.New,
 		"misc":         misc.New,
 		"wordle":       wordle.New,
-		"loldle":       loldle.New,
-		"loldle-emoji": loldleemoji.New,
-		"loldle-quote": loldlequote.New,
+		"loldle":         loldle.New,
+		"loldle-ability": loldleability.New,
+		"loldle-emoji":   loldleemoji.New,
+		"loldle-quote":   loldlequote.New,
 	}
 }
 
