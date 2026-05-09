@@ -4,13 +4,11 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 )
 
-// New is the lolschedule module Factory. The 5 user-facing commands are
-// wired here. The daily-push cron (08:00 ICT, fan-out to subscribers) is
-// deferred to Phase 09 of the port plan: Cloud Scheduler will hit
-// /cron/lolschedule_daily_push, and the cron handler needs a *bot.Bot
-// reference which today's Deps doesn't expose. Subscribers are still
-// collected by /lolschedule_subscribe so the push can light up the moment
-// the cron infra lands.
+// New is the lolschedule module Factory. The 5 user-facing commands plus the
+// daily-push cron (lolschedule_daily_push at 08:00 ICT, fan-out to
+// subscribers) are wired here. The cron handler reads deps.Bot at invoke
+// time — main.go must wire BuildOptions.Bot for the cron to function;
+// without it the handler fails fast with a clear error.
 func New(deps modules.Deps) modules.Module {
 	s := &state{kv: deps.KV, client: &Client{}}
 	return modules.Module{
@@ -46,5 +44,6 @@ func New(deps modules.Deps) modules.Module {
 				Handler:     s.handleUnsubscribe,
 			},
 		},
+		Crons: []modules.Cron{s.dailyPushCron()},
 	}
 }
