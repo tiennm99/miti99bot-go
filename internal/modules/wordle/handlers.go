@@ -3,6 +3,7 @@ package wordle
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"github.com/tiennm99/miti99bot-go/internal/keylock"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
@@ -19,7 +21,7 @@ type state struct {
 	kv    storage.KVStore
 	words []string
 	set   map[string]struct{}
-	locks subjectLocks // per-subject mutex; serialises Get→mutate→Put
+	locks keylock.Map // per-subject mutex; serialises Get→mutate→Put
 }
 
 // subjectFor mirrors JS getSubject: per-user in DMs, per-chat in groups,
@@ -125,7 +127,7 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 	if subject == "" {
 		return reply(ctx, b, msg, "Cannot identify chat.")
 	}
-	defer s.locks.acquire(subject)()
+	defer s.locks.Acquire(subject)()
 	arg := argAfterCommand(msg.Text)
 
 	g, err := s.getOrInit(ctx, subject)
@@ -197,7 +199,7 @@ func (s *state) handleNew(ctx context.Context, b *bot.Bot, update *models.Update
 	if subject == "" {
 		return reply(ctx, b, msg, "Cannot identify chat.")
 	}
-	defer s.locks.acquire(subject)()
+	defer s.locks.Acquire(subject)()
 
 	prelude := ""
 	prior, err := loadGame(ctx, s.kv, subject)
@@ -229,7 +231,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if subject == "" {
 		return reply(ctx, b, msg, "Cannot identify chat.")
 	}
-	defer s.locks.acquire(subject)()
+	defer s.locks.Acquire(subject)()
 	g, err := s.getOrInit(ctx, subject)
 	if err != nil {
 		return err
@@ -266,7 +268,10 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	}
 	winRate := 0
 	if stats.Played > 0 {
-		winRate = int(float64(stats.Wins) / float64(stats.Played) * 100)
+		// math.Round matches JS Math.round (round half away from zero for
+		// positive inputs); int(...) would truncate 66.66 to 66 where JS
+		// shows 67.
+		winRate = int(math.Round(float64(stats.Wins) / float64(stats.Played) * 100))
 	}
 	scope := "group"
 	if msg.Chat.Type == models.ChatTypePrivate {
