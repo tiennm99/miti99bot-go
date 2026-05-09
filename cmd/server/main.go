@@ -13,6 +13,7 @@ import (
 
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
+	"github.com/tiennm99/miti99bot-go/internal/modules/loldleemoji"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util"
 	"github.com/tiennm99/miti99bot-go/internal/modules/wordle"
@@ -34,10 +35,11 @@ var secretEnvKeys = []string{
 // import cycle (modules → util → modules).
 func factories() map[string]modules.Factory {
 	return map[string]modules.Factory{
-		"util":   util.New,
-		"misc":   misc.New,
-		"wordle": wordle.New,
-		"loldle": loldle.New,
+		"util":         util.New,
+		"misc":         misc.New,
+		"wordle":       wordle.New,
+		"loldle":       loldle.New,
+		"loldle-emoji": loldleemoji.New,
 	}
 }
 

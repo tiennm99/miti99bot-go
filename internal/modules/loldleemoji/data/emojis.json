@@ -1,0 +1,690 @@
+[
+  {
+    "championName": "Aatrox",
+    "emojis": "⚔️ 🌍 💪"
+  },
+  {
+    "championName": "Ahri",
+    "emojis": "🦊 🏯 🔮"
+  },
+  {
+    "championName": "Akali",
+    "emojis": "🧝 🏯 ⚡"
+  },
+  {
+    "championName": "Akshan",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Alistar",
+    "emojis": "🐂 🌍 🔮"
+  },
+  {
+    "championName": "Ambessa",
+    "emojis": "🧝 ⚙️ ⚡"
+  },
+  {
+    "championName": "Amumu",
+    "emojis": "💀 🏜️ 🔮"
+  },
+  {
+    "championName": "Anivia",
+    "emojis": "👻 ❄️ 🔮"
+  },
+  {
+    "championName": "Annie",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Aphelios",
+    "emojis": "🧝 ⛰️ 🔮"
+  },
+  {
+    "championName": "Ashe",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Aurelion Sol",
+    "emojis": "🌟 🌍 🔮"
+  },
+  {
+    "championName": "Aurora",
+    "emojis": "🦊 ❄️ 🔮"
+  },
+  {
+    "championName": "Azir",
+    "emojis": "⚜️ 🏜️ 🔮"
+  },
+  {
+    "championName": "Bard",
+    "emojis": "🌟 🌍 🔮"
+  },
+  {
+    "championName": "Bel'Veth",
+    "emojis": "👁️ 👾 💪"
+  },
+  {
+    "championName": "Blitzcrank",
+    "emojis": "🗿 🧪 🔮"
+  },
+  {
+    "championName": "Brand",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Braum",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Briar",
+    "emojis": "🗿 🗡️ ❤️‍🩹"
+  },
+  {
+    "championName": "Caitlyn",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Camille",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Cassiopeia",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Cho'Gath",
+    "emojis": "👁️ 👾 🔮"
+  },
+  {
+    "championName": "Corki",
+    "emojis": "🧚 🏡 🔮"
+  },
+  {
+    "championName": "Darius",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Diana",
+    "emojis": "🧝 ⛰️ 🔮"
+  },
+  {
+    "championName": "Dr. Mundo",
+    "emojis": "🧝 🧪 ❤️‍🩹"
+  },
+  {
+    "championName": "Draven",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Ekko",
+    "emojis": "🧝 🧪 🔮"
+  },
+  {
+    "championName": "Elise",
+    "emojis": "🧝 🌫️ 🔮"
+  },
+  {
+    "championName": "Evelynn",
+    "emojis": "😈 🌍 🔮"
+  },
+  {
+    "championName": "Ezreal",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Fiddlesticks",
+    "emojis": "😈 🌍 🔮"
+  },
+  {
+    "championName": "Fiora",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Fizz",
+    "emojis": "🧚 ⚓ 🔮"
+  },
+  {
+    "championName": "Galio",
+    "emojis": "🗿 🛡️ 🔮"
+  },
+  {
+    "championName": "Gangplank",
+    "emojis": "🧝 ⚓ 🔮"
+  },
+  {
+    "championName": "Garen",
+    "emojis": "🧝 🛡️ 💪"
+  },
+  {
+    "championName": "Gnar",
+    "emojis": "🧚 ❄️ 😡"
+  },
+  {
+    "championName": "Gragas",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Graves",
+    "emojis": "🧝 ⚓ 🔮"
+  },
+  {
+    "championName": "Gwen",
+    "emojis": "🧝 🌫️ 🔮"
+  },
+  {
+    "championName": "Hecarim",
+    "emojis": "💀 🌫️ 🔮"
+  },
+  {
+    "championName": "Heimerdinger",
+    "emojis": "🧚 ⚙️ 🔮"
+  },
+  {
+    "championName": "Hwei",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Illaoi",
+    "emojis": "🧝 ⚓ 🔮"
+  },
+  {
+    "championName": "Irelia",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Ivern",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Janna",
+    "emojis": "👻 🧪 🔮"
+  },
+  {
+    "championName": "Jarvan IV",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Jax",
+    "emojis": "❓ 🌍 🔮"
+  },
+  {
+    "championName": "Jayce",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Jhin",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Jinx",
+    "emojis": "🧝 🧪 🔮"
+  },
+  {
+    "championName": "K'Sante",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Kai'Sa",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Kalista",
+    "emojis": "💀 🌫️ 🔮"
+  },
+  {
+    "championName": "Karma",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Karthus",
+    "emojis": "💀 🌫️ 🔮"
+  },
+  {
+    "championName": "Kassadin",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Katarina",
+    "emojis": "🧝 🗡️ 💪"
+  },
+  {
+    "championName": "Kayle",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Kayn",
+    "emojis": "⚔️ 🏯 🔮"
+  },
+  {
+    "championName": "Kennen",
+    "emojis": "🧚 🏯 ⚡"
+  },
+  {
+    "championName": "Kha'Zix",
+    "emojis": "👁️ 👾 🔮"
+  },
+  {
+    "championName": "Kindred",
+    "emojis": "👻 🌍 🔮"
+  },
+  {
+    "championName": "Kled",
+    "emojis": "🧚 🗡️ 🦁"
+  },
+  {
+    "championName": "Kog'Maw",
+    "emojis": "👁️ 👾 🔮"
+  },
+  {
+    "championName": "LeBlanc",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Lee Sin",
+    "emojis": "🧝 🏯 ⚡"
+  },
+  {
+    "championName": "Leona",
+    "emojis": "🧝 ⛰️ 🔮"
+  },
+  {
+    "championName": "Lillia",
+    "emojis": "👻 🏯 🔮"
+  },
+  {
+    "championName": "Lissandra",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Lucian",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Lulu",
+    "emojis": "🧚 🏡 🔮"
+  },
+  {
+    "championName": "Lux",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Malphite",
+    "emojis": "🗿 🌿 🔮"
+  },
+  {
+    "championName": "Malzahar",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Maokai",
+    "emojis": "👻 🌫️ 🔮"
+  },
+  {
+    "championName": "Master Yi",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Mel",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Milio",
+    "emojis": "🧝 🌿 🔮"
+  },
+  {
+    "championName": "Miss Fortune",
+    "emojis": "🧝 ⚓ 🔮"
+  },
+  {
+    "championName": "Mordekaiser",
+    "emojis": "👻 🗡️ 🛡️"
+  },
+  {
+    "championName": "Morgana",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Naafiri",
+    "emojis": "🐕 🏜️ 🔮"
+  },
+  {
+    "championName": "Nami",
+    "emojis": "🦊 🌍 🔮"
+  },
+  {
+    "championName": "Nasus",
+    "emojis": "⚜️ 🏜️ 🔮"
+  },
+  {
+    "championName": "Nautilus",
+    "emojis": "👻 ⚓ 🔮"
+  },
+  {
+    "championName": "Neeko",
+    "emojis": "🦊 🌿 🔮"
+  },
+  {
+    "championName": "Nidalee",
+    "emojis": "🧝 🌿 🔮"
+  },
+  {
+    "championName": "Nilah",
+    "emojis": "🧝 ⚓ 🔮"
+  },
+  {
+    "championName": "Nocturne",
+    "emojis": "😈 🌍 🔮"
+  },
+  {
+    "championName": "Nunu & Willump",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Olaf",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Orianna",
+    "emojis": "🗿 ⚙️ 🔮"
+  },
+  {
+    "championName": "Ornn",
+    "emojis": "👻 ❄️ 🔮"
+  },
+  {
+    "championName": "Pantheon",
+    "emojis": "🧝 ⛰️ 🔮"
+  },
+  {
+    "championName": "Poppy",
+    "emojis": "🧚 🛡️ 🔮"
+  },
+  {
+    "championName": "Pyke",
+    "emojis": "👻 ⚓ 🔮"
+  },
+  {
+    "championName": "Qiyana",
+    "emojis": "🧝 🌿 🔮"
+  },
+  {
+    "championName": "Quinn",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Rakan",
+    "emojis": "🦊 🏯 🔮"
+  },
+  {
+    "championName": "Rammus",
+    "emojis": "❓ 🏜️ 🔮"
+  },
+  {
+    "championName": "Rek'Sai",
+    "emojis": "👁️ 🏜️ 😡"
+  },
+  {
+    "championName": "Rell",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Renata Glasc",
+    "emojis": "🧝 🧪 🔮"
+  },
+  {
+    "championName": "Renekton",
+    "emojis": "⚜️ 🏜️ 💢"
+  },
+  {
+    "championName": "Rengar",
+    "emojis": "🦊 🌿 🔥"
+  },
+  {
+    "championName": "Riven",
+    "emojis": "🧝 🏯 💪"
+  },
+  {
+    "championName": "Rumble",
+    "emojis": "🧚 🏡 🔥"
+  },
+  {
+    "championName": "Ryze",
+    "emojis": "🧝 🌍 🔮"
+  },
+  {
+    "championName": "Samira",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Sejuani",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Senna",
+    "emojis": "🧝 🌫️ 🔮"
+  },
+  {
+    "championName": "Seraphine",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Sett",
+    "emojis": "🧝 🏯 🪨"
+  },
+  {
+    "championName": "Shaco",
+    "emojis": "👻 🌍 🔮"
+  },
+  {
+    "championName": "Shen",
+    "emojis": "🧝 🏯 ⚡"
+  },
+  {
+    "championName": "Shyvana",
+    "emojis": "🐉 🛡️ 💢"
+  },
+  {
+    "championName": "Singed",
+    "emojis": "🧝 🧪 🔮"
+  },
+  {
+    "championName": "Sion",
+    "emojis": "👻 🗡️ 🔮"
+  },
+  {
+    "championName": "Sivir",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Skarner",
+    "emojis": "🦂 🌿 🔮"
+  },
+  {
+    "championName": "Smolder",
+    "emojis": "🐉 ⚜️ 🔮"
+  },
+  {
+    "championName": "Sona",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Soraka",
+    "emojis": "🌟 ⛰️ 🔮"
+  },
+  {
+    "championName": "Swain",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Sylas",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Syndra",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Tahm Kench",
+    "emojis": "😈 ⚓ 🔮"
+  },
+  {
+    "championName": "Taliyah",
+    "emojis": "🧝 🏜️ 🔮"
+  },
+  {
+    "championName": "Talon",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Taric",
+    "emojis": "🧝 ⛰️ 🔮"
+  },
+  {
+    "championName": "Teemo",
+    "emojis": "🧚 🏡 🔮"
+  },
+  {
+    "championName": "Thresh",
+    "emojis": "💀 🌫️ 🔮"
+  },
+  {
+    "championName": "Tristana",
+    "emojis": "🧚 🏡 🔮"
+  },
+  {
+    "championName": "Trundle",
+    "emojis": "🧌 ❄️ 🔮"
+  },
+  {
+    "championName": "Tryndamere",
+    "emojis": "🧝 ❄️ 💢"
+  },
+  {
+    "championName": "Twisted Fate",
+    "emojis": "🧝 ⚓ 🔮"
+  },
+  {
+    "championName": "Twitch",
+    "emojis": "🐀 🧪 🔮"
+  },
+  {
+    "championName": "Udyr",
+    "emojis": "🧝 ❄️ 🔮"
+  },
+  {
+    "championName": "Urgot",
+    "emojis": "🧝 🗡️ 🔮"
+  },
+  {
+    "championName": "Varus",
+    "emojis": "⚔️ 🏯 🔮"
+  },
+  {
+    "championName": "Vayne",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Veigar",
+    "emojis": "🧚 🌍 🔮"
+  },
+  {
+    "championName": "Vel'Koz",
+    "emojis": "👁️ 👾 🔮"
+  },
+  {
+    "championName": "Vex",
+    "emojis": "🧚 🌫️ 🔮"
+  },
+  {
+    "championName": "Vi",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Viego",
+    "emojis": "💀 🌫️ 💪"
+  },
+  {
+    "championName": "Viktor",
+    "emojis": "🧝 ⚙️ 🔮"
+  },
+  {
+    "championName": "Vladimir",
+    "emojis": "🧝 🗡️ 🩸"
+  },
+  {
+    "championName": "Volibear",
+    "emojis": "👻 ❄️ 🔮"
+  },
+  {
+    "championName": "Warwick",
+    "emojis": "🧝 🧪 🔮"
+  },
+  {
+    "championName": "Wukong",
+    "emojis": "🦊 🏯 🔮"
+  },
+  {
+    "championName": "Xayah",
+    "emojis": "🦊 🏯 🔮"
+  },
+  {
+    "championName": "Xerath",
+    "emojis": "💀 🏜️ 🔮"
+  },
+  {
+    "championName": "Xin Zhao",
+    "emojis": "🧝 🛡️ 🔮"
+  },
+  {
+    "championName": "Yasuo",
+    "emojis": "🧝 🏯 💧"
+  },
+  {
+    "championName": "Yone",
+    "emojis": "🧝 🏯 💪"
+  },
+  {
+    "championName": "Yorick",
+    "emojis": "🧝 🌫️ 🔮"
+  },
+  {
+    "championName": "Yunara",
+    "emojis": "🧝 🏯 🔮"
+  },
+  {
+    "championName": "Yuumi",
+    "emojis": "🐱 🏡 🔮"
+  },
+  {
+    "championName": "Zaahen",
+    "emojis": "⚔️ 🏜️ 🔮"
+  },
+  {
+    "championName": "Zac",
+    "emojis": "🗿 🧪 ❤️‍🩹"
+  },
+  {
+    "championName": "Zed",
+    "emojis": "🧝 🏯 ⚡"
+  },
+  {
+    "championName": "Zeri",
+    "emojis": "🧝 🧪 🔮"
+  },
+  {
+    "championName": "Ziggs",
+    "emojis": "🧚 🧪 🔮"
+  },
+  {
+    "championName": "Zilean",
+    "emojis": "🧝 🌍 🔮"
+  },
+  {
+    "championName": "Zoe",
+    "emojis": "🧝 ⛰️ 🔮"
+  },
+  {
+    "championName": "Zyra",
+    "emojis": "🧝 🌿 🔮"
+  }
+]
