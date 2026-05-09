@@ -14,6 +14,8 @@ supersedes: [260425-1945-mongodb-atlas-migration]
 
 # Plan: Go port → Google Cloud Run (free tier)
 
+> **2026-05-10:** Deploy phases (01, 09–12) **superseded by [`plans/260510-0114-aws-port/`](../260510-0114-aws-port/plan.md)** — strict $0 free-tier goal motivated switch to AWS Lambda + DynamoDB + EventBridge. Module work (phases 03–07) is done and **reused unchanged** by the AWS plan. Phase 08 (trading) remains pending, cloud-agnostic, can be tackled before or after the AWS cutover.
+
 Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+Workers AI for Firestore Native + Gemini API + Cloud Scheduler. Source repo lives at a new `miti99bot-go` repo (separate). Cutover via dual-run + soak.
 
 ## Locked decisions
@@ -45,7 +47,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 | 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | done | 4h | `FirestoreKVStore`, emulator tests, KVProvider abstraction (Memory + Firestore) |
 | 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | done | 6h | 4 KV-only modules at JS parity; shared `internal/keylock` extracted |
 | 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | done | 5h | All five sub-modules ported (emoji, quote, ability, splash, lolschedule); lolschedule daily-push cron deferred to Phase 09 |
-| 07 | [Gemini AI + port semantle/doantu/twentyq](phase-07-gemini-ai-modules.md) | pending | 6h | 3 AI modules with rate-limit handling |
+| 07 | [Gemini AI + port semantle/doantu/twentyq](phase-07-gemini-ai-modules.md) | done | 6h | `internal/ai` (Embedder/Chatter + per-user bucket); semantle (text-embedding-004), doantu (phow2sim HTTP — JS-parity deviation), twentyq (gemini-2.5-flash) |
 | 08 | [Port trading + composite indexes](phase-08-port-trading.md) | pending | 6h | VN-stocks paper trading + daily price cron |
 | 09 | [Cloud Scheduler cron wiring](phase-09-cloud-scheduler.md) | pending | 2h | 2 jobs → `/cron/{name}` with OIDC |
 | 10 | [CI/CD + Dockerfile + Secret Manager](phase-10-ci-cd.md) | pending | 4h | GHA pipeline → AR → Cloud Run, idempotent |
