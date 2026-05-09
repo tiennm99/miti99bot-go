@@ -5,13 +5,14 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"runtime/debug"
 	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+
+	"github.com/tiennm99/miti99bot-go/internal/log"
 )
 
 // secretTokenHeader is the case-insensitive HTTP header Telegram sets when it
@@ -72,7 +73,9 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 		func() {
 			defer func() {
 				if rec := recover(); rec != nil {
-					log.Printf("webhook handler panic: %v\n%s", rec, debug.Stack())
+					log.Error("webhook handler panic",
+						"panic", rec,
+						"stack", string(debug.Stack()))
 				}
 			}()
 			b.ProcessUpdate(ctx, &update)

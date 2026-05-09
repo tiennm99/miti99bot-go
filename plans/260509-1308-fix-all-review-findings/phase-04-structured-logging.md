@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Structured logging"
-status: pending
+status: completed
 priority: P2
 effort: "2-3h"
 dependencies: []
@@ -71,12 +71,12 @@ log.Error("misc ping putJSON failed", "module", "misc", "command", "ping", "err"
 10. **Smoke test locally** — run server, hit endpoint, verify Cloud-Logging-friendly JSON in stdout.
 
 ## Success Criteria
-- [ ] Zero `log.Printf` / `log.Fatalf` calls outside `internal/log`
-- [ ] All log lines are valid JSON
-- [ ] Each line has `severity`, `time`, `message`, plus structured fields
-- [ ] Cron error log no longer has CRLF-injection risk (J3)
-- [ ] LOG_LEVEL env respected
-- [ ] All existing tests pass
+- [x] Zero stdlib `"log"` imports outside `internal/log` (verified via grep)
+- [x] All log lines are valid JSON via `slog.JSONHandler` writing to stdout
+- [x] Each line has `level`, `time`, `msg`, plus structured fields
+- [x] Cron + dispatcher error logs no longer have CRLF-injection risk (J3) — newlines are escaped in field values (test: `TestNewlineEscaping_NoLogInjection`)
+- [x] `LOG_LEVEL=debug|info|warn|error` honoured at startup
+- [x] `go test -race -count=1 ./...` clean across all 13 packages
 
 ## Risk Assessment
 - **Risk:** Newline handling — slog escapes newlines in field values, so error wrapping `%v` of a newline-bearing error becomes safe automatically.

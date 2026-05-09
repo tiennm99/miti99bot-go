@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
 
 	"github.com/go-telegram/bot"
 
+	"github.com/tiennm99/miti99bot-go/internal/log"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/telegram"
 )
@@ -74,7 +74,7 @@ func cronHandler(reg *modules.Registry, secret string) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("cron name=%s", name)
+		log.Info("cron triggered", "route", "/cron", "name", name)
 		ctx, cancel := context.WithTimeout(r.Context(), defaultCronTimeout)
 		defer cancel()
 
@@ -83,7 +83,7 @@ func cronHandler(reg *modules.Registry, secret string) http.HandlerFunc {
 				http.NotFound(w, r)
 				return
 			}
-			log.Printf("cron %s failed: %v", name, err)
+			log.Error("cron failed", "route", "/cron", "name", name, "err", err)
 			http.Error(w, "cron failed", http.StatusInternalServerError)
 			return
 		}

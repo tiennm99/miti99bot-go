@@ -7,12 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"github.com/tiennm99/miti99bot-go/internal/log"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
@@ -52,7 +52,7 @@ func pingCommand(deps modules.Deps) modules.Command {
 			// Best-effort write — if KV is unavailable, still reply.
 			payload := lastPing{At: chathelper.NowMillis()}
 			if err := deps.KV.PutJSON(ctx, lastPingKey, payload); err != nil {
-				log.Printf("misc /ping: putJSON failed: %v", err)
+				log.Error("kv put failed", "module", "misc", "command", "ping", "key", lastPingKey, "err", err)
 			}
 			return chathelper.Reply(ctx, b, update.Message.Chat.ID, "pong")
 		},

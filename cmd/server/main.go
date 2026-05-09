@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tiennm99/miti99bot-go/internal/log"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldleemoji"
@@ -44,10 +44,11 @@ const firestoreInitTimeout = 10 * time.Second
 func main() {
 	cfg := loadConfig()
 	if cfg.TelegramBotToken == "" {
-		log.Fatal("TELEGRAM_BOT_TOKEN is required")
+		log.Fatal("missing required env", "key", "TELEGRAM_BOT_TOKEN")
 	}
 	if cfg.WebhookSecret == "" {
-		log.Fatal("TELEGRAM_WEBHOOK_SECRET is required (a non-empty secret is the only auth on /webhook)")
+		log.Fatal("missing required env", "key", "TELEGRAM_WEBHOOK_SECRET",
+			"why", "non-empty secret is the only auth on /webhook")
 	}
 
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -55,29 +56,31 @@ func main() {
 
 	provider, closeProvider, err := buildProvider(rootCtx, cfg)
 	if err != nil {
-		log.Fatalf("storage: %v", err)
+		log.Fatal("storage init failed", "err", err)
 	}
 	defer closeProvider()
 
 	b, err := telegram.NewBot(cfg.TelegramBotToken)
 	if err != nil {
-		log.Fatalf("telegram bot init: %v", err)
+		log.Fatal("telegram bot init failed", "err", err)
 	}
 
 	reg, err := modules.Build(cfg.Modules, factories(), provider, cfg.ModuleEnv)
 	if err != nil {
-		log.Fatalf("module registry: %v", err)
+		log.Fatal("module registry build failed", "err", err)
 	}
 	auth := modules.Auth{BotOwnerID: cfg.BotOwnerID, AdminUserIDs: cfg.AdminUserIDs}
 	modules.Install(b, reg, auth)
-	log.Printf("loaded %d module(s), %d command(s), %d cron(s)",
-		len(reg.Modules), len(reg.AllCommands), len(reg.Crons()))
+	log.Info("modules loaded",
+		"modules", len(reg.Modules),
+		"commands", len(reg.AllCommands),
+		"crons", len(reg.Crons()))
 
 	if cfg.BotOwnerID == 0 {
-		log.Println("WARN: BOT_OWNER_ID unset; all Private + Protected commands will be denied")
+		log.Warn("BOT_OWNER_ID unset; all Private + Protected commands will be denied")
 	}
 	if cfg.CronSecret == "" {
-		log.Println("WARN: CRON_SHARED_SECRET unset; /cron/{name} disabled (404 to all)")
+		log.Warn("CRON_SHARED_SECRET unset; /cron/{name} disabled (404 to all)")
 	}
 
 	handler := server.New(server.Config{
@@ -99,18 +102,18 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("server listening on :%s", cfg.Port)
+		log.Info("server listening", "port", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server: %v", err)
+			log.Fatal("server crashed", "err", err)
 		}
 	}()
 
 	<-rootCtx.Done()
-	log.Println("shutting down")
+	log.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("graceful shutdown: %v", err)
+		log.Error("graceful shutdown failed", "err", err)
 	}
 }
 
@@ -122,7 +125,7 @@ func main() {
 func buildProvider(ctx context.Context, cfg config) (storage.KVProvider, func(), error) {
 	useFirestore := cfg.GCPProject != "" || cfg.FirestoreEmulatorHost != ""
 	if !useFirestore {
-		log.Println("WARN: GOOGLE_CLOUD_PROJECT unset; using in-memory KV (data lost on restart)")
+		log.Warn("GOOGLE_CLOUD_PROJECT unset; using in-memory KV (data lost on restart)")
 		return storage.NewMemoryProvider(), func() {}, nil
 	}
 
@@ -141,10 +144,13 @@ func buildProvider(ctx context.Context, cfg config) (storage.KVProvider, func(),
 	}
 	closer := func() {
 		if err := client.Close(); err != nil {
-			log.Printf("firestore close: %v", err)
+			log.Error("firestore close failed", "err", err)
 		}
 	}
-	log.Printf("storage: Firestore project=%s emulator=%q", projectID, cfg.FirestoreEmulatorHost)
+	log.Info("storage backend",
+		"backend", "firestore",
+		"project", projectID,
+		"emulator", cfg.FirestoreEmulatorHost)
 	return storage.NewFirestoreProvider(client), closer, nil
 }
 
@@ -208,7 +214,7 @@ func parseInt64(s string) int64 {
 	}
 	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
 	if err != nil {
-		log.Printf("WARN: invalid int64 %q in env: %v", s, err)
+		log.Warn("invalid int64 in env", "value", s, "err", err)
 		return 0
 	}
 	return n
@@ -229,7 +235,7 @@ func parseInt64Set(s string) map[int64]bool {
 		}
 		n, err := strconv.ParseInt(t, 10, 64)
 		if err != nil {
-			log.Printf("WARN: invalid admin id %q: %v", t, err)
+			log.Warn("invalid admin id", "value", t, "err", err)
 			continue
 		}
 		out[n] = true
