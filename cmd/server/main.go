@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util"
 	"github.com/tiennm99/miti99bot-go/internal/modules/wordle"
@@ -36,6 +37,7 @@ func factories() map[string]modules.Factory {
 		"util":   util.New,
 		"misc":   misc.New,
 		"wordle": wordle.New,
+		"loldle": loldle.New,
 	}
 }
 
