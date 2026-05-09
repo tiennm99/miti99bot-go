@@ -8,6 +8,7 @@ import (
 	"github.com/go-telegram/bot/models"
 
 	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 )
 
 // infoCommand returns /info — replies plain text with chat / thread / sender
@@ -36,11 +37,7 @@ func infoCommand() modules.Command {
 				senderID = fmt.Sprintf("%d", msg.From.ID)
 			}
 			text := fmt.Sprintf("chat id: %s\nthread id: %s\nsender id: %s", chatID, threadID, senderID)
-			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: msg.Chat.ID,
-				Text:   text,
-			})
-			return err
+			return chathelper.Reply(ctx, b, msg.Chat.ID, text)
 		},
 	}
 }

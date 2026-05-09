@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"math"
 	"math/rand"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"github.com/tiennm99/miti99bot-go/internal/champname"
 	"github.com/tiennm99/miti99bot-go/internal/keylock"
+	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
@@ -27,37 +26,8 @@ type state struct {
 	locks     keylock.Map // serialises Get→mutate→Put per subject
 }
 
-// subjectFor mirrors JS getSubject: group/supergroup → chat ID (shared game),
-// otherwise → user ID. Channels and unknown types fall through to From.ID.
-// Returns "" when no usable id is present.
-func subjectFor(msg *models.Message) string {
-	if msg == nil {
-		return ""
-	}
-	switch msg.Chat.Type {
-	case models.ChatTypeGroup, models.ChatTypeSupergroup:
-		return strconv.FormatInt(msg.Chat.ID, 10)
-	default:
-		if msg.From != nil {
-			return strconv.FormatInt(msg.From.ID, 10)
-		}
-	}
-	return ""
-}
-
-// argAfterCommand returns everything after the first space in text, trimmed.
-// Identical contract to wordle/util — duplicated to keep package-local;
-// promoting to a shared helper buys very little until a 4th module needs it.
-func argAfterCommand(text string) string {
-	if text == "" {
-		return ""
-	}
-	idx := strings.IndexByte(text, ' ')
-	if idx < 0 {
-		return ""
-	}
-	return strings.TrimSpace(text[idx+1:])
-}
+// championName extracts the comparable name field for champname helpers.
+func championName(c *Champion) string { return c.ChampionName }
 
 // pickRandomChampion uses math/rand's mutex-protected globals so concurrent
 // /loldle handlers don't race on a shared *rand.Rand.
@@ -66,7 +36,7 @@ func (s *state) pickRandomChampion() *Champion {
 }
 
 func (s *state) findByName(name string) *Champion {
-	return findByExactName(s.champions, name)
+	return champname.FindByExactName(s.champions, name, championName)
 }
 
 // rehydrateGuesses recomputes board rows from the stored championNames.
@@ -128,36 +98,18 @@ func trySendSticker(ctx context.Context, b *bot.Bot, chatID int64, pool []string
 	})
 }
 
-// reply sends a plain-text response.
-func reply(ctx context.Context, b *bot.Bot, chatID int64, text string) error {
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{ChatID: chatID, Text: text})
-	return err
-}
-
-// replyHTML sends a Telegram HTML-formatted response.
-func replyHTML(ctx context.Context, b *bot.Bot, chatID int64, text string) error {
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    chatID,
-		Text:      text,
-		ParseMode: models.ParseModeHTML,
-	})
-	return err
-}
-
-func nowMillis() int64 { return time.Now().UTC().UnixMilli() }
-
 // handleLoldle is /loldle [champion] — show board if no arg, else submit guess.
 func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Update) error {
 	msg := update.Message
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
-	arg := argAfterCommand(msg.Text)
+	arg := chathelper.ArgAfterCommand(msg.Text)
 
 	maxGuesses, err := getMaxGuesses(ctx, s.kv, subject)
 	if err != nil {
@@ -172,17 +124,17 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		header := fmt.Sprintf("Guess %d/%d. Use <code>/loldle &lt;champion&gt;</code>.",
 			len(game.Guesses), maxGuesses)
 		board := renderBoard(s.rehydrateGuesses(game))
-		return replyHTML(ctx, b, msg.Chat.ID, header+"\n\n"+board)
+		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, header+"\n\n"+board)
 	}
 
-	guess := findChampion(s.champions, arg)
+	guess := champname.Find(s.champions, arg, championName)
 	if guess == nil {
-		return reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Champion not found: %q.", arg))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Champion not found: %q.", arg))
 	}
 
 	for _, prior := range game.Guesses {
 		if prior == guess.ChampionName {
-			return replyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+			return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
 				"🔁 <b>%s</b> was already guessed this round — try another champion.",
 				html.EscapeString(guess.ChampionName)))
 		}
@@ -195,13 +147,13 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		if err := clearGame(ctx, s.kv, subject); err != nil {
 			return err
 		}
-		return replyHTML(ctx, b, msg.Chat.ID,
+		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID,
 			"Champion data was updated since this round started. "+newRoundHint)
 	}
 
 	results := CompareChampions(guess, target)
 	if game.StartedAt == nil {
-		now := nowMillis()
+		now := chathelper.NowMillis()
 		game.StartedAt = &now
 	}
 	game.Guesses = append(game.Guesses, guess.ChampionName)
@@ -209,7 +161,7 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	rendered := renderGuess(guess.ChampionName, results)
 	champ := html.EscapeString(target.ChampionName)
-	elapsed := formatDuration(nowMillis() - *game.StartedAt)
+	elapsed := formatDuration(chathelper.NowMillis() - *game.StartedAt)
 
 	switch {
 	case won:
@@ -222,7 +174,7 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		}
 		trySendSticker(ctx, b, msg.Chat.ID, winStickers)
 		flavor := attemptFlavor(len(game.Guesses), maxGuesses)
-		return replyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
 			"%s\n\n🎉 %s %s\n⏱ %s · 🔥 Streak: %d (%d/%d)\n%s",
 			rendered, flavor, champ, elapsed, st.Streak, len(game.Guesses), maxGuesses, newRoundHint))
 
@@ -234,14 +186,14 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 			return err
 		}
 		trySendSticker(ctx, b, msg.Chat.ID, loseStickers)
-		return replyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
 			"%s\n\n❌ Out of guesses. Answer was %s.\n%s", rendered, champ, newRoundHint))
 
 	default:
 		if err := saveGame(ctx, s.kv, subject, game); err != nil {
 			return err
 		}
-		return replyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
 			"%s\n\nGuess %d/%d.", rendered, len(game.Guesses), maxGuesses))
 	}
 }
@@ -252,9 +204,9 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 
@@ -263,7 +215,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 		return err
 	}
 	if existing == nil {
-		return replyHTML(ctx, b, msg.Chat.ID, "No active round. "+newRoundHint)
+		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, "No active round. "+newRoundHint)
 	}
 	if _, err := recordResult(ctx, s.kv, subject, false); err != nil {
 		return err
@@ -277,7 +229,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if target != nil {
 		answer = target.ChampionName
 	}
-	return replyHTML(ctx, b, msg.Chat.ID,
+	return chathelper.ReplyHTML(ctx, b, msg.Chat.ID,
 		fmt.Sprintf("🏳️ Answer was %s.\n%s", html.EscapeString(answer), newRoundHint))
 }
 
@@ -287,28 +239,21 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	st, err := loadStats(ctx, s.kv, subject)
 	if err != nil {
 		return err
 	}
-	winRate := 0
-	if st.Played > 0 {
-		// math.Round matches JS Math.round for positive inputs (round half
-		// away from zero); int(...) truncation would render 2/3 as 66% where
-		// the JS source shows 67%.
-		winRate = int(math.Round(float64(st.Wins) / float64(st.Played) * 100))
-	}
 	scope := "group"
 	if msg.Chat.Type == models.ChatTypePrivate {
 		scope = "your"
 	}
-	return reply(ctx, b, msg.Chat.ID, fmt.Sprintf(
+	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf(
 		"📊 Loldle %s stats\nPlayed: %d\nWins: %d (%d%%)\nCurrent streak: %d\nBest streak: %d",
-		scope, st.Played, st.Wins, winRate, st.Streak, st.BestStreak))
+		scope, st.Played, st.Wins, chathelper.WinRate(st.Wins, st.Played), st.Streak, st.BestStreak))
 }
 
 // handleSetMax is /loldle_setmax <n> — private command, sets the per-subject
@@ -318,17 +263,17 @@ func (s *state) handleSetMax(ctx context.Context, b *bot.Bot, update *models.Upd
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
-	arg := argAfterCommand(msg.Text)
+	arg := chathelper.ArgAfterCommand(msg.Text)
 	n, err := strconv.Atoi(arg)
 	if err != nil || n < 1 || n > MaxGuessesCap {
-		return reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Usage: /loldle_setmax <1-%d>", MaxGuessesCap))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Usage: /loldle_setmax <1-%d>", MaxGuessesCap))
 	}
 	if err := setMaxGuesses(ctx, s.kv, subject, n); err != nil {
 		return err
 	}
-	return reply(ctx, b, msg.Chat.ID, fmt.Sprintf("✅ Loldle max guesses set to %d (applies to the next round).", n))
+	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("✅ Loldle max guesses set to %d (applies to the next round).", n))
 }

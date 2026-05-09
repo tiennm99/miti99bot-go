@@ -10,6 +10,7 @@ import (
 	"github.com/go-telegram/bot/models"
 
 	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 )
 
 const stickerIDUsage = "Reply to a sticker message with /stickerid to get its file_id.\n" +
@@ -31,11 +32,7 @@ func stickerIDCommand() modules.Command {
 
 			sticker := stickerFrom(msg)
 			if sticker == nil {
-				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: msg.Chat.ID,
-					Text:   stickerIDUsage,
-				})
-				return err
+				return chathelper.Reply(ctx, b, msg.Chat.ID, stickerIDUsage)
 			}
 
 			setName := sticker.SetName
@@ -55,12 +52,7 @@ func stickerIDCommand() modules.Command {
 			fmt.Fprintf(&sb, "set: %s · emoji: %s",
 				html.EscapeString(setName), html.EscapeString(emoji))
 
-			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:    msg.Chat.ID,
-				Text:      sb.String(),
-				ParseMode: models.ParseModeHTML,
-			})
-			return err
+			return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, sb.String())
 		},
 	}
 }

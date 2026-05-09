@@ -3,15 +3,13 @@ package wordle
 import (
 	"context"
 	"fmt"
-	"math"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
 	"github.com/tiennm99/miti99bot-go/internal/keylock"
+	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
@@ -22,41 +20,6 @@ type state struct {
 	words []string
 	set   map[string]struct{}
 	locks keylock.Map // per-subject mutex; serialises Get→mutate→Put
-}
-
-// subjectFor mirrors JS getSubject: per-user in DMs, per-chat in groups,
-// per-user fallback for channels and unknown types. Returns an empty string
-// when no usable subject id is present (caller replies with an error).
-func subjectFor(msg *models.Message) string {
-	if msg == nil {
-		return ""
-	}
-	switch msg.Chat.Type {
-	case models.ChatTypePrivate:
-		if msg.From != nil {
-			return strconv.FormatInt(msg.From.ID, 10)
-		}
-	case models.ChatTypeGroup, models.ChatTypeSupergroup:
-		return strconv.FormatInt(msg.Chat.ID, 10)
-	default:
-		if msg.From != nil {
-			return strconv.FormatInt(msg.From.ID, 10)
-		}
-	}
-	return ""
-}
-
-// argAfterCommand returns everything after the first space in text, trimmed.
-// JS-parity. Works for `/wordle apple`, `/wordle@bot apple`, etc.
-func argAfterCommand(text string) string {
-	if text == "" {
-		return ""
-	}
-	idx := strings.IndexByte(text, ' ')
-	if idx < 0 {
-		return ""
-	}
-	return strings.TrimSpace(text[idx+1:])
 }
 
 // rejectMessage maps a validation failure into the user-facing reply. JS
@@ -72,20 +35,6 @@ func rejectMessage(reason rejectReason) string {
 	}
 }
 
-// reply is a tiny helper so the four handlers don't all repeat the same
-// SendMessage incantation. Returns the SendMessage error to the dispatcher.
-func reply(ctx context.Context, b *bot.Bot, msg *models.Message, text string) error {
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: msg.Chat.ID,
-		Text:   text,
-	})
-	return err
-}
-
-// nowMillis returns current UTC ms-since-epoch — single source of "now" so
-// tests can substitute via the kv-state path if needed.
-func nowMillis() int64 { return time.Now().UTC().UnixMilli() }
-
 // startFresh writes a brand-new round and returns it. Errors propagate to
 // the caller (not swallowed — a KV failure means subsequent ops will lie).
 func (s *state) startFresh(ctx context.Context, subject string) (*GameState, error) {
@@ -98,7 +47,7 @@ func (s *state) startFresh(ctx context.Context, subject string) (*GameState, err
 		Guesses:   []GuessRecord{},
 		Solved:    false,
 		Giveup:    false,
-		StartedAt: nowMillis(),
+		StartedAt: chathelper.NowMillis(),
 	}
 	if err := saveGame(ctx, s.kv, subject, g); err != nil {
 		return nil, err
@@ -123,12 +72,12 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
-	arg := argAfterCommand(msg.Text)
+	arg := chathelper.ArgAfterCommand(msg.Text)
 
 	g, err := s.getOrInit(ctx, subject)
 	if err != nil {
@@ -145,17 +94,17 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 		default:
 			header = fmt.Sprintf("Guess %d/%d. Use `/wordle <word>`.", len(g.Guesses), MaxGuesses)
 		}
-		return reply(ctx, b, msg, header+"\n\n"+renderBoard(g.Guesses))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, header+"\n\n"+renderBoard(g.Guesses))
 	}
 
 	if isFinished(g) {
-		return reply(ctx, b, msg,
+		return chathelper.Reply(ctx, b, msg.Chat.ID,
 			fmt.Sprintf("Current round is over. Use /wordle_new to start another. Answer was %s.", strings.ToUpper(g.Target)))
 	}
 
 	v := validateGuess(s.set, arg)
 	if !v.OK {
-		return reply(ctx, b, msg, rejectMessage(v.Reason))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, rejectMessage(v.Reason))
 	}
 
 	results := CompareWords(v.Word, g.Target)
@@ -171,20 +120,20 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 	rendered := renderGuess(v.Word, results)
 	switch {
 	case won:
-		stats, err := recordResult(ctx, s.kv, subject, true, nowMillis())
+		stats, err := recordResult(ctx, s.kv, subject, true, chathelper.NowMillis())
 		if err != nil {
 			return err
 		}
-		return reply(ctx, b, msg, fmt.Sprintf("%s\n\n🎉 Solved in %d/%d! Streak: %d. /wordle_new for another.",
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("%s\n\n🎉 Solved in %d/%d! Streak: %d. /wordle_new for another.",
 			rendered, len(g.Guesses), MaxGuesses, stats.Streak))
 	case len(g.Guesses) >= MaxGuesses:
-		if _, err := recordResult(ctx, s.kv, subject, false, nowMillis()); err != nil {
+		if _, err := recordResult(ctx, s.kv, subject, false, chathelper.NowMillis()); err != nil {
 			return err
 		}
-		return reply(ctx, b, msg, fmt.Sprintf("%s\n\n❌ Out of guesses. Answer was %s. /wordle_new to retry.",
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("%s\n\n❌ Out of guesses. Answer was %s. /wordle_new to retry.",
 			rendered, strings.ToUpper(g.Target)))
 	default:
-		return reply(ctx, b, msg, fmt.Sprintf("%s\n\nGuess %d/%d.", rendered, len(g.Guesses), MaxGuesses))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("%s\n\nGuess %d/%d.", rendered, len(g.Guesses), MaxGuesses))
 	}
 }
 
@@ -195,9 +144,9 @@ func (s *state) handleNew(ctx context.Context, b *bot.Bot, update *models.Update
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 
@@ -207,7 +156,7 @@ func (s *state) handleNew(ctx context.Context, b *bot.Bot, update *models.Update
 		return err
 	}
 	if prior != nil && !isFinished(prior) {
-		if _, err := recordResult(ctx, s.kv, subject, false, nowMillis()); err != nil {
+		if _, err := recordResult(ctx, s.kv, subject, false, chathelper.NowMillis()); err != nil {
 			return err
 		}
 		prelude = fmt.Sprintf("🏳️ Previous round abandoned (auto-giveup). Answer was %s.\n\n",
@@ -217,7 +166,7 @@ func (s *state) handleNew(ctx context.Context, b *bot.Bot, update *models.Update
 	if _, err := s.startFresh(ctx, subject); err != nil {
 		return err
 	}
-	return reply(ctx, b, msg, prelude+"🆕 New round started. Use `/wordle <word>` to guess.")
+	return chathelper.Reply(ctx, b, msg.Chat.ID, prelude+"🆕 New round started. Use `/wordle <word>` to guess.")
 }
 
 // handleGiveup is /wordle_giveup — reveals answer for the current round.
@@ -227,9 +176,9 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 	g, err := s.getOrInit(ctx, subject)
@@ -237,19 +186,19 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 		return err
 	}
 	if g.Solved {
-		return reply(ctx, b, msg, fmt.Sprintf("Already solved — %s.", strings.ToUpper(g.Target)))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Already solved — %s.", strings.ToUpper(g.Target)))
 	}
 	if g.Giveup {
-		return reply(ctx, b, msg, fmt.Sprintf("Already gave up — %s.", strings.ToUpper(g.Target)))
+		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Already gave up — %s.", strings.ToUpper(g.Target)))
 	}
 	g.Giveup = true
 	if err := saveGame(ctx, s.kv, subject, g); err != nil {
 		return err
 	}
-	if _, err := recordResult(ctx, s.kv, subject, false, nowMillis()); err != nil {
+	if _, err := recordResult(ctx, s.kv, subject, false, chathelper.NowMillis()); err != nil {
 		return err
 	}
-	return reply(ctx, b, msg, fmt.Sprintf("🏳️ Answer was %s. /wordle_new for another.", strings.ToUpper(g.Target)))
+	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("🏳️ Answer was %s. /wordle_new for another.", strings.ToUpper(g.Target)))
 }
 
 // handleStats is /wordle_stats — shows lifetime score for the subject.
@@ -258,27 +207,20 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	if msg == nil {
 		return nil
 	}
-	subject := subjectFor(msg)
+	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return reply(ctx, b, msg, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
 	}
 	stats, err := loadStats(ctx, s.kv, subject)
 	if err != nil {
 		return err
 	}
-	winRate := 0
-	if stats.Played > 0 {
-		// math.Round matches JS Math.round (round half away from zero for
-		// positive inputs); int(...) would truncate 66.66 to 66 where JS
-		// shows 67.
-		winRate = int(math.Round(float64(stats.Wins) / float64(stats.Played) * 100))
-	}
 	scope := "group"
 	if msg.Chat.Type == models.ChatTypePrivate {
 		scope = "your"
 	}
-	return reply(ctx, b, msg, fmt.Sprintf(
+	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf(
 		"📊 Wordle %s stats\nPlayed: %d\nWins: %d (%d%%)\nCurrent streak: %d\nBest streak: %d",
-		scope, stats.Played, stats.Wins, winRate, stats.Streak, stats.BestStreak,
+		scope, stats.Played, stats.Wins, chathelper.WinRate(stats.Wins, stats.Played), stats.Streak, stats.BestStreak,
 	))
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/go-telegram/bot/models"
 
 	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
@@ -45,16 +46,15 @@ func pingCommand(deps modules.Deps) modules.Command {
 		Visibility:  modules.VisibilityPublic,
 		Description: "Health check — replies pong and records last ping",
 		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			if update.Message == nil {
+				return nil
+			}
 			// Best-effort write — if KV is unavailable, still reply.
-			payload := lastPing{At: time.Now().UTC().UnixMilli()}
+			payload := lastPing{At: chathelper.NowMillis()}
 			if err := deps.KV.PutJSON(ctx, lastPingKey, payload); err != nil {
 				log.Printf("misc /ping: putJSON failed: %v", err)
 			}
-			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "pong",
-			})
-			return err
+			return chathelper.Reply(ctx, b, update.Message.Chat.ID, "pong")
 		},
 	}
 }
@@ -65,6 +65,9 @@ func mstatsCommand(deps modules.Deps) modules.Command {
 		Visibility:  modules.VisibilityProtected,
 		Description: "Show the timestamp of the last /ping",
 		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			if update.Message == nil {
+				return nil
+			}
 			var last lastPing
 			text := "last ping: never"
 			err := deps.KV.GetJSON(ctx, lastPingKey, &last)
@@ -75,11 +78,7 @@ func mstatsCommand(deps modules.Deps) modules.Command {
 			case err != nil && !errors.Is(err, storage.ErrNotFound):
 				return fmt.Errorf("misc /mstats: %w", err)
 			}
-			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   text,
-			})
-			return err
+			return chathelper.Reply(ctx, b, update.Message.Chat.ID, text)
 		},
 	}
 }
@@ -90,11 +89,10 @@ func fortytwoCommand() modules.Command {
 		Visibility:  modules.VisibilityPrivate,
 		Description: "Easter egg — the answer",
 		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
-			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "The answer.",
-			})
-			return err
+			if update.Message == nil {
+				return nil
+			}
+			return chathelper.Reply(ctx, b, update.Message.Chat.ID, "The answer.")
 		},
 	}
 }
