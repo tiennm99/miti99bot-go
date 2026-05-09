@@ -1,19 +1,26 @@
 # miti99bot-go
 
-Plug-n-play Telegram bot framework in Go, deployed on Google Cloud Run with Firestore + Gemini. Free-tier port of [miti99bot](https://github.com/tiennm99/miti99bot).
+Plug-n-play Telegram bot framework in Go. **Default deploy: AWS Lambda + DynamoDB + EventBridge Scheduler (free tier).** Cloud Run + Firestore retained as an alt path. Free-tier port of [miti99bot](https://github.com/tiennm99/miti99bot).
 
 ## Status
 
-Early scaffolding. See [`plans/260508-2222-go-port-cloud-run/plan.md`](plans/260508-2222-go-port-cloud-run/plan.md) for the full roadmap.
+Mid-port. Code is on `main`; first AWS deploy still pending the user's manual AWS-account bootstrap.
 
-| Phase | What | Status |
+| Track | What | Status |
 |-------|------|--------|
-| 01 | GCP setup, Cloud Run baseline | pending |
-| 02 | Repo bootstrap + webhook skeleton | **partial** (local pieces done; Cloud Run deploy deferred to Phase 01) |
-| 03 | Module framework + KVStore | **done** |
-| 04 | Firestore KV + provider abstraction | **done** |
-| 05–07 | Module ports (util/misc/wordle/loldle/lolschedule + AI: semantle/doantu/twentyq) | **done** |
-| 08+ | Trading, cron wiring, CI/CD, cutover | pending |
+| Modules | util, misc, wordle, loldle (+ ability/emoji/quote/splash variants), lolschedule, semantle, doantu, twentyq | **done** |
+| Storage | KVStore interface; in-memory + Firestore + **DynamoDB** providers | **done** |
+| AI | Gemini API client (`internal/ai`) | **done** |
+| AWS IaC | SAM template + Makefile + GH Actions OIDC deploy | **done** |
+| AWS bootstrap | account, IAM OIDC, SSM SecureString params, first `sam deploy` | **manual user steps — see [`aws/README.md`](aws/README.md)** |
+| Cron handlers | lolschedule daily push, trading daily refresh | pending |
+| Trading module | VN-stocks paper trading | pending |
+| Cutover | Telegram webhook flip + 7-day soak | deploy-gated |
+
+Plans:
+- Active: [`plans/260510-0234-pre-deploy-wrapup/`](plans/260510-0234-pre-deploy-wrapup/plan.md) — cron handlers + trading + cosmetics
+- AWS port: [`plans/260510-0114-aws-port/`](plans/260510-0114-aws-port/plan.md)
+- Original GCP plan (historical): [`plans/260508-2222-go-port-cloud-run/`](plans/260508-2222-go-port-cloud-run/plan.md) — module work reused; deploy phases superseded by AWS port
 
 ## Layout
 
@@ -21,11 +28,17 @@ Early scaffolding. See [`plans/260508-2222-go-port-cloud-run/plan.md`](plans/260
 cmd/server/             entrypoint
 internal/server/        HTTP routes (/, /webhook, /cron/{name})
 internal/telegram/      Telegram webhook + bot wrapper
-internal/modules/       Module framework, registry, dispatchers
-internal/storage/       KVStore interface, in-memory impl, prefix wrapper
+internal/modules/       Module framework, registry, dispatchers, modules
+internal/storage/       KVStore interface; memory / firestore / dynamodb providers
+internal/ai/            Gemini client
+template.yaml           AWS SAM IaC (Lambda + Function URL + DynamoDB + Logs + Budget)
+docs/deploy-aws.md      AWS deploy operations
+aws/README.md           One-time AWS account bootstrap cheatsheet
 ```
 
 ## Run locally
+
+In-memory KV (default; no AWS / no GCP needed):
 
 ```sh
 TELEGRAM_BOT_TOKEN=… \
@@ -35,22 +48,38 @@ MODULES= \
 go run ./cmd/server
 ```
 
-End-to-end smoke test against a Telegram dev bot requires `ngrok` (local) or a Cloud Run deployment. The dev bot is created manually; token is injected via env vars only.
+End-to-end smoke test against a Telegram dev bot needs `ngrok` (local) or a deployed Function URL. The dev bot is created manually; token injected via env vars only.
+
+For DynamoDB integration tests:
+```sh
+make dynamodb-local      # docker run amazon/dynamodb-local on :8001
+make test-dynamodb       # runs internal/storage tests against DDB Local
+```
+
+For Firestore emulator (legacy):
+```sh
+make firestore-emulator  # in a second shell
+make test-emulator
+```
 
 ## Test
 
 ```sh
-go vet ./...
-go test ./...
+make vet              # go vet
+make test             # full unit suite (no emulator)
+make test-dynamodb    # storage tests against DynamoDB Local (requires Docker)
+make test-emulator    # storage tests against Firestore emulator
 ```
 
-## Build
+## Deploy
+
+**AWS (canonical):** see [`docs/deploy-aws.md`](docs/deploy-aws.md). Push to `main` → GitHub Actions OIDC → SAM deploy. First-time bootstrap: [`aws/README.md`](aws/README.md).
+
+**Cloud Run (alternative, deferred):** the multi-stage `Dockerfile` builds an image suitable for any container runtime (Cloud Run, Fly.io, ECS Fargate, K8s). Image is `golang:1.25-alpine` → `gcr.io/distroless/static:nonroot`, ~15 MiB.
 
 ```sh
 docker build -t miti99bot-go .
 ```
-
-The image is multi-stage (`golang:1.23-alpine` → `gcr.io/distroless/static:nonroot`); resulting image is ~15 MiB.
 
 ## License
 

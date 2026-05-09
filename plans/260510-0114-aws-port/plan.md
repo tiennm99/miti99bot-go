@@ -37,13 +37,13 @@ Re-target only the deploy/runtime layer. Module work (Phases 03–07 of GCP plan
 
 | # | Phase | Status | Effort | Key deliverable |
 |---|-------|--------|--------|-----------------|
-| 01 | [AWS bootstrap + IAM OIDC + SAM skeleton](phase-01-aws-bootstrap.md) | pending | 3h | AWS account, OIDC trust, empty SAM stack deployable |
-| 02 | [Lambda runtime (Go ZIP + LWA + Function URL)](phase-02-lambda-runtime.md) | pending | 4h | `/` and `/webhook` served from Lambda; secret-token check passes |
-| 03 | [DynamoDB KV provider](phase-03-dynamodb-kv.md) | pending | 4h | `dynamodb_kv.go` + `dynamodb_provider.go` sibling to Firestore impl, parity tests pass |
-| 04 | [EventBridge cron wiring](phase-04-eventbridge-cron.md) | pending | 3h | Scheduler → `/cron/{name}` with token, two crons firing on schedule |
-| 05 | [GitHub Actions deploy (OIDC + SAM)](phase-05-gha-deploy.md) | pending | 3h | `deploy.yml` runs on push to `main`, builds + sam deploys idempotently |
-| 06 | [Observability + budget alert](phase-06-observability.md) | pending | 2h | Logs retention set, $1 budget alert, cold-start P95 captured |
-| 07 | [Cutover + README + retire GCP paths](phase-07-cutover.md) | pending | 3h | Webhook flipped to Function URL, README rewritten, GCP code paths kept but unwired by default |
+| 01 | [AWS bootstrap + IAM OIDC + SAM skeleton](phase-01-aws-bootstrap.md) | pending (manual) | 3h | AWS account, OIDC trust, empty SAM stack deployable |
+| 02 | [Lambda runtime (Go ZIP + LWA + Function URL)](phase-02-lambda-runtime.md) | code-done; awaits first deploy | 4h | `/` and `/webhook` served from Lambda; secret-token check passes |
+| 03 | [DynamoDB KV provider](phase-03-dynamodb-kv.md) | code-done; integration tests skip without DDB Local | 4h | `dynamodb_kv.go` + `dynamodb_provider.go` sibling to Firestore impl, parity tests pass |
+| 04 | [EventBridge cron wiring](phase-04-eventbridge-cron.md) | pending (blocked on cron handlers, see 260510-0234-pre-deploy-wrapup) | 3h | Scheduler → `/cron/{name}` with token, two crons firing on schedule |
+| 05 | [GitHub Actions deploy (OIDC + SAM)](phase-05-gha-deploy.md) | done | 3h | `deploy.yml` runs on push to `main`, builds + sam deploys idempotently |
+| 06 | [Observability + budget alert](phase-06-observability.md) | partial (budget shipped; metric filter in 260510-0234) | 2h | Logs retention set, $1 budget alert, cold-start P95 captured |
+| 07 | [Cutover + README + retire GCP paths](phase-07-cutover.md) | pending (deploy-gated) | 3h | Webhook flipped to Function URL, README rewritten, GCP code paths kept but unwired by default |
 
 ## Dependency graph
 ```
