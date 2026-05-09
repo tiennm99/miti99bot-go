@@ -1,12 +1,13 @@
 ---
 title: "Fix all review findings (architecture + security + tests)"
 description: "Remediation plan covering Critical/High/Major/Medium findings from the 2026-05-09 whole-project review (architecture, security, test-coverage)."
-status: pending
+status: completed
 priority: P1
 effort: 1.5-2d
 branch: main
 tags: [fixes, review, hardening, tests, ci]
 created: 2026-05-09
+completed: 2026-05-09
 blockedBy: []
 blocks: []
 ---
