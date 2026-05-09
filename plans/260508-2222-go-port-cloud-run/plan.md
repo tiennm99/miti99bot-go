@@ -33,6 +33,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 - [code-reviewer 2026-05-09 — Phase 5a util+misc](reports/code-reviewer-260509-0813-phase5a-util-misc.md) (1 critical /info nil-deref + L2 KV wire-format mismatch with JS, both fixed; M1 doc + L3 escape test applied)
 - [code-reviewer 2026-05-09 — Phase 5b wordle](reports/code-reviewer-260509-0918-phase5b-wordle.md) (1 critical defaultRNG race + 1 high Get-mutate-Put race + dead-code; all fixed in same session; per-subject mutex added to serialise compound KV ops)
 - [code-reviewer 2026-05-09 — Phase 5c loldle](reports/code-reviewer-260509-0940-phase5c-loldle.md) (1 high winRate truncation in both loldle AND wordle; both fixed; render + keylock test gaps closed)
+- [code-reviewer 2026-05-09 — Phase 6a loldle-emoji](reports/code-reviewer-260509-1206-phase6a-loldle-emoji.md) (0 critical/high; JS-wire-format decode test added; shared-helper extraction queued for 6b)
 
 ## Phases
 
@@ -43,7 +44,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 | 03 | [Module framework + storage interfaces](phase-03-module-framework.md) | done | 4h | Module/Command/Cron interfaces, registry, dispatcher |
 | 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | done | 4h | `FirestoreKVStore`, emulator tests, KVProvider abstraction (Memory + Firestore) |
 | 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | done | 6h | 4 KV-only modules at JS parity; shared `internal/keylock` extracted |
-| 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | pending | 5h | 5 modules sharing classic loldle patterns |
+| 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | partial | 5h | 6a loldle-emoji done; quote/ability/splash/lolschedule pending |
 | 07 | [Gemini AI + port semantle/doantu/twentyq](phase-07-gemini-ai-modules.md) | pending | 6h | 3 AI modules with rate-limit handling |
 | 08 | [Port trading + composite indexes](phase-08-port-trading.md) | pending | 6h | VN-stocks paper trading + daily price cron |
 | 09 | [Cloud Scheduler cron wiring](phase-09-cloud-scheduler.md) | pending | 2h | 2 jobs → `/cron/{name}` with OIDC |

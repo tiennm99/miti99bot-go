@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Port loldle variants + lolschedule"
-status: pending
+status: partial
 priority: P2
 effort: "5h"
 dependencies: [5]
@@ -65,12 +65,31 @@ A small shared package would help, but keep modules independent (KISS) until dup
 8. Wire factories.
 9. Smoke each command against dev bot.
 
+## Cook scope split
+This phase ships in five sub-cooks (one per module — each is large enough to risk context exhaustion):
+- **6a (this cook):** loldle-emoji — 172-record emoji clue dict, binary scoring, simplest variant. ✅
+- **6b (next):** loldle-quote — same shape as emoji, quote pool. **Prep work:** extract `normalize`, `subjectFor`, `argAfterCommand`, `findChampion` to a shared package; classic loldle and 6a both already duplicate them, 6b would be the third caller — past the YAGNI extraction threshold.
+- **6c (next):** loldle-ability — DDragon ability-icon URL builder, sendPhoto.
+- **6d (next):** loldle-splash — DDragon splash URL builder, sendPhoto.
+- **6e (next):** lolschedule — HTTP client to lolesports/leaguepedia API; no game state, different shape entirely.
+
 ## Success Criteria
-- [ ] All 5 modules respond to their commands
-- [ ] Ability + splash images render in Telegram (no broken-image markers)
-- [ ] `/lolschedule today` matches JS behavior
-- [ ] All variants share consistent guess-count limits matching JS recent revert (`commit 29e558b`)
-- [ ] Ported tests pass
+- [x] loldle-emoji responds to `/loldle_emoji`, `/loldle_emoji_giveup`, `/loldle_emoji_stats`, `/loldle_emoji_setmax`
+- [ ] Ability + splash images render in Telegram (no broken-image markers) — deferred to 6c/6d
+- [ ] `/lolschedule today` matches JS behavior — deferred to 6e
+- [ ] All variants share consistent guess-count limits matching JS recent revert (`commit 29e558b`) — partial: emoji at 5, others pending
+- [x] Ported tests pass for loldle-emoji (lookup, state, render, JS-wire-format decode)
+
+## Implementation deviations (6a — loldle-emoji)
+- `moduleNameRe` relaxed from `^[a-z0-9_]{1,32}$` to `^[a-z0-9_-]{1,32}$` so JS-source module names like `loldle-emoji` pass validation. The storage prefix delimiter (`:`) remains rejected; tests cover both shapes.
+- Go package directory + package name use `loldleemoji` (no separator) per Go convention; the registered MODULE name is `loldle-emoji` (hyphenated, byte-identical to JS) for KV-prefix migration parity.
+- `normalize`, `subjectFor`, `argAfterCommand` duplicated from classic loldle. Marked for extraction at the start of cook 6b — three callers will exist by then, past the YAGNI threshold.
+- `winRate` uses `math.Round` from day one (lesson from Phase 5c review).
+- KV TTL deferred — Cloudflare KV's `expirationTtl` has no Firestore equivalent.
+- No sticker pools — JS source has none for emoji mode.
+
+## Code reviews (6a)
+- [Phase 6a review](reports/code-reviewer-260509-1206-phase6a-loldle-emoji.md) — 0 critical, 0 high. Concerns: F#1 (JS-wire-format decode test) added in same session; F#2 (`getOrInitGame` cap-reduction edge case) deferred — defensive branch only; E (extract shared helpers) earmarked as 6b prep work.
 
 ## Risk Assessment
 - **Risk**: Riot Data Dragon version pinning — JS version may use different ddragon version than fresh fetch. **Mitigation**: pin version in env or fetch latest at cold start; document in README.
