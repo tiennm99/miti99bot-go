@@ -14,6 +14,7 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/modules"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util"
+	"github.com/tiennm99/miti99bot-go/internal/modules/wordle"
 	"github.com/tiennm99/miti99bot-go/internal/server"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 	"github.com/tiennm99/miti99bot-go/internal/telegram"
@@ -32,8 +33,9 @@ var secretEnvKeys = []string{
 // import cycle (modules → util → modules).
 func factories() map[string]modules.Factory {
 	return map[string]modules.Factory{
-		"util": util.New,
-		"misc": misc.New,
+		"util":   util.New,
+		"misc":   misc.New,
+		"wordle": wordle.New,
 	}
 }
 
