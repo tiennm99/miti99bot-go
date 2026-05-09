@@ -148,8 +148,8 @@ func (s *DynamoDBKVStore) List(ctx context.Context, prefix string) ([]string, er
 		return nil, err
 	}
 	input := &dynamodb.QueryInput{
-		TableName:              aws.String(s.table),
-		ProjectionExpression:   aws.String(dynamoSKAttr),
+		TableName:            aws.String(s.table),
+		ProjectionExpression: aws.String(dynamoSKAttr),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":pk": &types.AttributeValueMemberS{Value: s.moduleName},
 		},
