@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -49,13 +52,31 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, maxWebhookBody)
 		var update models.Update
 		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			// MaxBytesReader returns *http.MaxBytesError when the cap is hit;
+			// surface 413 distinctly so Telegram (and ops dashboards) can
+			// distinguish "body too big" from generic malformed JSON.
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), handlerTimeout)
 		defer cancel()
-		b.ProcessUpdate(ctx, &update)
+		// Recover panics so a buggy handler does not propagate up to the
+		// http.Server (which would close the response mid-write and trigger
+		// Telegram's 24-hour retry loop on the same poisoned update).
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					log.Printf("webhook handler panic: %v\n%s", rec, debug.Stack())
+				}
+			}()
+			b.ProcessUpdate(ctx, &update)
+		}()
 		w.WriteHeader(http.StatusOK)
 	}
 }

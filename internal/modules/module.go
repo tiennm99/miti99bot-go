@@ -9,9 +9,10 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 )
 
-// Visibility classifies who may invoke a command. The dispatcher does not
-// enforce visibility today; the field exists so /help and chat-scoping can
-// filter consistently in later phases.
+// Visibility classifies who may invoke a command. The dispatcher enforces
+// this at command-handler entry: Public is unrestricted; Protected requires
+// the sender to be in Auth.AdminUserIDs (or be the bot owner); Private
+// requires the sender to be Auth.BotOwnerID. /help filters by the same field.
 type Visibility int
 
 const (
@@ -61,8 +62,10 @@ type Module struct {
 // Deps is the dependency bundle a Factory receives. Each field is added in the
 // phase that introduces it; today KV, Env, and Registry exist (Gemini: Phase 07).
 //
-// Deps.Env is the process environment with sensitive keys stripped. Modules
-// must not assume Env contains every variable — see cmd/server.envForModules.
+// Deps.Env is empty by default — process env does NOT auto-flow to modules
+// (allowlist semantics). Phase 07+ introduces a per-module env declaration so
+// keys flow only to declared consumers; this prevents a future API key from
+// silently reaching every module.
 //
 // Deps.Registry is a pointer to the Registry being built. At factory call
 // time the Registry is partially populated (only modules earlier in the
@@ -71,7 +74,7 @@ type Module struct {
 // in their handler closures.
 type Deps struct {
 	KV       storage.KVStore   // already prefixed with the module name when passed to a Factory
-	Env      map[string]string // process env minus known-sensitive keys
+	Env      map[string]string // empty by default; per-module allowlist (Phase 07+)
 	Registry *Registry         // populated by Build; safe to capture but read-only at module use
 }
 

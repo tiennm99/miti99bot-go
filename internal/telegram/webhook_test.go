@@ -2,12 +2,14 @@ package telegram
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 const testSecret = "super-secret-token"
@@ -82,13 +84,20 @@ func TestWebhookHandler_RejectsMalformedJSON(t *testing.T) {
 
 func TestWebhookHandler_RejectsOversizedBody(t *testing.T) {
 	h := WebhookHandler(mustBot(t), testSecret)
-	body := bytes.Repeat([]byte("a"), maxWebhookBody+1)
-	req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(body))
+	// Valid-prefixed JSON so the decoder doesn't bail on the first byte; the
+	// long string field forces a read past maxWebhookBody, triggering
+	// *http.MaxBytesError. Plain "aaaa…" without the JSON wrapper would fail
+	// at byte 1 with a SyntaxError and never exercise the cap.
+	body := bytes.Buffer{}
+	body.WriteString(`{"update_id":1,"message":{"text":"`)
+	body.Write(bytes.Repeat([]byte("a"), maxWebhookBody+1))
+	body.WriteString(`"}}`)
+	req := httptest.NewRequest(http.MethodPost, "/webhook", &body)
 	req.Header.Set(secretTokenHeader, testSecret)
 	rec := httptest.NewRecorder()
 	h(rec, req)
-	if rec.Code == http.StatusOK {
-		t.Errorf("oversized body should not return 200; got %d", rec.Code)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want 413", rec.Code)
 	}
 }
 
@@ -100,5 +109,28 @@ func TestWebhookHandler_AcceptsValidUpdate(t *testing.T) {
 	h(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
+	}
+}
+
+// panicUpdate matches the panicHandler registered below by /panic command.
+const panicUpdate = `{"update_id":2,"message":{"message_id":1,"date":1,"chat":{"id":1,"type":"private"},"from":{"id":1,"is_bot":false,"first_name":"x"},"text":"/panic","entities":[{"type":"bot_command","offset":0,"length":6}]}}`
+
+func TestWebhookHandler_RecoversPanicAndReturns200(t *testing.T) {
+	// A panicking handler must NOT propagate to the http.Server (would close
+	// the response mid-write and trigger Telegram's 24-hour retry storm on the
+	// same poisoned update). Recovery returns 200; Telegram does not retry.
+	b := mustBot(t)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "panic", bot.MatchTypeCommand,
+		func(ctx context.Context, _ *bot.Bot, _ *models.Update) {
+			panic("boom")
+		})
+
+	h := WebhookHandler(b, testSecret)
+	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(panicUpdate))
+	req.Header.Set(secretTokenHeader, testSecret)
+	rec := httptest.NewRecorder()
+	h(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200 after recover", rec.Code)
 	}
 }

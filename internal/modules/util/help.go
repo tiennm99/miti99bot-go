@@ -95,6 +95,9 @@ func helpCommand(reg *modules.Registry) modules.Command {
 		Visibility:  modules.VisibilityPublic,
 		Description: "Show all available commands",
 		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			if update.Message == nil {
+				return nil
+			}
 			text := RenderHelp(reg)
 			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:             update.Message.Chat.ID,

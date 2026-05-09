@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -21,14 +22,6 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/storage"
 	"github.com/tiennm99/miti99bot-go/internal/telegram"
 )
-
-// secretEnvKeys are stripped from Deps.Env before any module sees it. Each
-// new credential added to the environment must be appended here.
-var secretEnvKeys = []string{
-	"TELEGRAM_BOT_TOKEN",
-	"TELEGRAM_WEBHOOK_SECRET",
-	"CRON_SHARED_SECRET",
-}
 
 // factories is the static module catalog. Adding a new module is a one-line
 // change here. Lives in main rather than the modules package to avoid an
@@ -75,10 +68,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("module registry: %v", err)
 	}
-	modules.Install(b, reg)
+	auth := modules.Auth{BotOwnerID: cfg.BotOwnerID, AdminUserIDs: cfg.AdminUserIDs}
+	modules.Install(b, reg, auth)
 	log.Printf("loaded %d module(s), %d command(s), %d cron(s)",
 		len(reg.Modules), len(reg.AllCommands), len(reg.Crons()))
 
+	if cfg.BotOwnerID == 0 {
+		log.Println("WARN: BOT_OWNER_ID unset; all Private + Protected commands will be denied")
+	}
 	if cfg.CronSecret == "" {
 		log.Println("WARN: CRON_SHARED_SECRET unset; /cron/{name} disabled (404 to all)")
 	}
@@ -159,7 +156,9 @@ type config struct {
 	GCPProject            string
 	FirestoreEmulatorHost string
 	Modules               []string
-	ModuleEnv             map[string]string // sensitive keys stripped, safe to hand to modules
+	BotOwnerID            int64
+	AdminUserIDs          map[int64]bool
+	ModuleEnv             map[string]string // empty — modules opt in via per-module allowlist (Phase 07+)
 }
 
 func loadConfig() config {
@@ -181,19 +180,10 @@ func loadConfig() config {
 		GCPProject:            envMap["GOOGLE_CLOUD_PROJECT"],
 		FirestoreEmulatorHost: envMap["FIRESTORE_EMULATOR_HOST"],
 		Modules:               splitCSV(envMap["MODULES"]),
-		ModuleEnv:              envForModules(envMap),
+		BotOwnerID:            parseInt64(envMap["BOT_OWNER_ID"]),
+		AdminUserIDs:          parseInt64Set(envMap["ADMIN_USER_IDS"]),
+		ModuleEnv:              map[string]string{}, // allowlist semantics — process env does not auto-flow
 	}
-}
-
-func envForModules(env map[string]string) map[string]string {
-	out := make(map[string]string, len(env))
-	for k, v := range env {
-		out[k] = v
-	}
-	for _, k := range secretEnvKeys {
-		delete(out, k)
-	}
-	return out
 }
 
 func splitCSV(s string) []string {
@@ -206,6 +196,43 @@ func splitCSV(s string) []string {
 		if t := strings.TrimSpace(p); t != "" {
 			out = append(out, t)
 		}
+	}
+	return out
+}
+
+// parseInt64 returns 0 (the "unset" sentinel) when s is empty or invalid.
+// Telegram user IDs are positive int64 so 0 is unambiguously "no value".
+func parseInt64(s string) int64 {
+	if s == "" {
+		return 0
+	}
+	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	if err != nil {
+		log.Printf("WARN: invalid int64 %q in env: %v", s, err)
+		return 0
+	}
+	return n
+}
+
+// parseInt64Set parses a comma-separated list of int64 IDs into a set. Bad
+// entries are logged and skipped — one malformed admin ID does not deny the
+// rest.
+func parseInt64Set(s string) map[int64]bool {
+	if s == "" {
+		return nil
+	}
+	out := map[int64]bool{}
+	for _, p := range strings.Split(s, ",") {
+		t := strings.TrimSpace(p)
+		if t == "" {
+			continue
+		}
+		n, err := strconv.ParseInt(t, 10, 64)
+		if err != nil {
+			log.Printf("WARN: invalid admin id %q: %v", t, err)
+			continue
+		}
+		out[n] = true
 	}
 	return out
 }

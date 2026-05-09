@@ -14,10 +14,12 @@ import (
 //	  • Aatrox  ❌
 //	  • Ahri    ❌
 //
-// Empty board returns the placeholder hint. emojis is the target's emoji
-// string (already safe — emojis aren't HTML-escaped in the JS source either).
+// Empty board returns the placeholder hint. emojis is build-time data (embedded
+// JSON) so practically safe, but we escape defensively — Telegram's HTML parse
+// mode rejects unknown tags and the page-level invariant is "no unescaped
+// user/data input in HTML output".
 func renderBoard(emojis string, guesses []string, maxGuesses int) string {
-	clue := "🎭 " + emojis
+	clue := "🎭 " + html.EscapeString(emojis)
 	if len(guesses) == 0 {
 		return clue + "\n\nNo guesses yet. Reply with <code>/loldle_emoji &lt;champion&gt;</code>."
 	}
