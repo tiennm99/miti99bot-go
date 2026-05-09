@@ -30,6 +30,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 ## Reports
 - [code-reviewer 2026-05-08 — Phase 02-03 bootstrap](reports/code-reviewer-260508-2254-phase02-03-bootstrap.md) (3 critical + 7 high addressed in same session; 2 medium + nits deferred)
 - [code-reviewer 2026-05-08 — Phase 04 Firestore](reports/code-reviewer-260508-2333-phase04-firestore-kv.md) (0 critical, 3 high all addressed; mediums deferred)
+- [code-reviewer 2026-05-09 — Phase 5a util+misc](reports/code-reviewer-260509-0813-phase5a-util-misc.md) (1 critical /info nil-deref + L2 KV wire-format mismatch with JS, both fixed; M1 doc + L3 escape test applied)
 
 ## Phases
 
@@ -39,7 +40,7 @@ Full rewrite of miti99bot in Go for deployment on Cloud Run, swapping CF KV+D1+W
 | 02 | [New repo bootstrap + webhook skeleton](phase-02-repo-bootstrap.md) | partial | 3h | `miti99bot-go` repo, `/webhook` validates secret token (Cloud Run deploy + Telegram smoke test deferred to Phase 01) |
 | 03 | [Module framework + storage interfaces](phase-03-module-framework.md) | done | 4h | Module/Command/Cron interfaces, registry, dispatcher |
 | 04 | [Firestore KVStore + per-module prefixing](phase-04-firestore-kv.md) | done | 4h | `FirestoreKVStore`, emulator tests, KVProvider abstraction (Memory + Firestore) |
-| 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | pending | 6h | 4 KV-only modules at parity with JS version |
+| 05 | [Port simple modules (util/misc/wordle/loldle)](phase-05-port-simple-modules.md) | partial | 6h | 5a util+misc done; 5b wordle + 5c loldle pending follow-up cooks |
 | 06 | [Port loldle variants + lolschedule](phase-06-port-loldle-variants.md) | pending | 5h | 5 modules sharing classic loldle patterns |
 | 07 | [Gemini AI + port semantle/doantu/twentyq](phase-07-gemini-ai-modules.md) | pending | 6h | 3 AI modules with rate-limit handling |
 | 08 | [Port trading + composite indexes](phase-08-port-trading.md) | pending | 6h | VN-stocks paper trading + daily price cron |

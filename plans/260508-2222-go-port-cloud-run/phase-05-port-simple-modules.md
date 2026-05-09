@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Port simple modules (util, misc, wordle, loldle classic)"
-status: pending
+status: partial
 priority: P2
 effort: "6h"
 dependencies: [4]
@@ -69,11 +69,26 @@ internal/modules/loldle/
 8. Smoke test on Cloud Run with dev bot.
 
 ## Success Criteria
-- [ ] `/wordle`, `/wguess apple`, `/wgiveup`, `/wstats` work end-to-end
-- [ ] `/loldle`, `/lguess <champion>`, `/lgiveup` work
-- [ ] `/help` lists all 4 modules' public commands
-- [ ] All ported tests pass (count parity with JS suite where applicable)
-- [ ] Image size stays ≤25 MiB after embedding word + champion data
+- [ ] `/wordle`, `/wguess apple`, `/wgiveup`, `/wstats` work end-to-end (deferred to follow-up cook 5b)
+- [ ] `/loldle`, `/lguess <champion>`, `/lgiveup` work (deferred to follow-up cook 5c)
+- [x] `/help` lists all loaded modules' public + protected commands (covers util + misc; will pick up wordle/loldle automatically once 5b/5c land)
+- [ ] All ported tests pass (count parity with JS suite where applicable) — partial: util/misc tests added; wordle/loldle pending
+- [ ] Image size stays ≤25 MiB after embedding word + champion data (deferred — current binary 17 MB without embeds)
+
+## Cook scope split
+This phase ships in three sub-cooks:
+- **5a (this cook):** util + misc — small, validates the module-loading pipeline end-to-end. ✅ done.
+- **5b (next):** wordle — 14k-word dict, scoring, sessions. ~500 LoC + data file.
+- **5c (next):** loldle classic — champion JSON, daily reset, attribute comparison. ~700 LoC + data file.
+
+## Implementation deviations (5a)
+- `modules.Deps` gained a `Registry *Registry` pointer so `/help` can introspect at runtime. Pointer is captured at factory time and stable thereafter; Registry is documented read-only after Build returns.
+- Static factory catalog (`modules.Factories`) moved to `cmd/server/main.go::factories()` to avoid an import cycle (`modules → util → modules`). The empty `internal/modules/modules.go` file remains as a doc anchor.
+- `misc.lastPing.At` stored as int64 ms-epoch (matches JS `Date.now()`) — preserves byte-for-byte KV parity for the future export-import migration.
+- Telegram-side handler tests intentionally skipped — would require a fake bot HTTP server for negligible coverage gain. Renderer + KV behaviour ARE tested.
+
+## Code review (5a)
+[Phase 5a review](reports/code-reviewer-260509-0813-phase5a-util-misc.md) — 1 critical (`/info` nil-deref), 2 high (1 informational + 1 perf-deferred), 4 mediums/lows. C1 and L2 (KV wire-format parity) fixed in same session; M1 doc, L3 escape-test, H1 thread-id comment also applied.
 
 ## Risk Assessment
 - **Risk**: 14k-word file embedded → ~120 KiB. `go:embed` puts it in the binary; no runtime IO. Acceptable.
