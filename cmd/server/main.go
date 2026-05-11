@@ -16,15 +16,9 @@ import (
 	"github.com/tiennm99/miti99bot-go/internal/log"
 	"github.com/tiennm99/miti99bot-go/internal/metrics"
 	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/modules/doantu"
 	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
-	"github.com/tiennm99/miti99bot-go/internal/modules/loldleability"
-	"github.com/tiennm99/miti99bot-go/internal/modules/loldleemoji"
-	"github.com/tiennm99/miti99bot-go/internal/modules/loldlequote"
-	"github.com/tiennm99/miti99bot-go/internal/modules/loldlesplash"
 	"github.com/tiennm99/miti99bot-go/internal/modules/lolschedule"
 	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
-	"github.com/tiennm99/miti99bot-go/internal/modules/semantle"
 	"github.com/tiennm99/miti99bot-go/internal/modules/trading"
 	"github.com/tiennm99/miti99bot-go/internal/modules/twentyq"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util"
@@ -39,19 +33,13 @@ import (
 // import cycle (modules → util → modules).
 func factories() map[string]modules.Factory {
 	return map[string]modules.Factory{
-		"util":           util.New,
-		"misc":           misc.New,
-		"wordle":         wordle.New,
-		"loldle":         loldle.New,
-		"loldle-ability": loldleability.New,
-		"loldle-emoji":   loldleemoji.New,
-		"loldle-quote":   loldlequote.New,
-		"loldle-splash":  loldlesplash.New,
-		"lolschedule":    lolschedule.New,
-		"semantle":       semantle.New,
-		"doantu":         doantu.New,
-		"twentyq":        twentyq.New,
-		"trading":        trading.New,
+		"util":        util.New,
+		"misc":        misc.New,
+		"wordle":      wordle.New,
+		"loldle":      loldle.New,
+		"lolschedule": lolschedule.New,
+		"twentyq":     twentyq.New,
+		"trading":     trading.New,
 	}
 }
 
@@ -92,9 +80,9 @@ func main() {
 		log.Fatal("telegram bot init failed", "err", err)
 	}
 
-	// Gemini is optional: modules that need it (semantle/twentyq) check
-	// for nil and refuse the command at handler time. A blank GEMINI_API_KEY
-	// is therefore not fatal — the rest of the bot still runs.
+	// Gemini is optional: twentyq checks for nil and refuses the command at
+	// handler time. A blank GEMINI_API_KEY is therefore not fatal — the rest
+	// of the bot still runs.
 	aiClient, err := ai.NewClient(rootCtx, cfg.GeminiAPIKey)
 	if err != nil && !errors.Is(err, ai.ErrNotConfigured) {
 		log.Fatal("gemini init failed", "err", err)
@@ -105,10 +93,9 @@ func main() {
 		log.Info("gemini client initialised")
 	}
 
-	reg, err := modules.Build(cfg.Modules, factories(), provider, cfg.ModuleEnv, modules.BuildOptions{
-		Embedder: aiClient,
-		Chatter:  aiClient,
-		Bot:      b,
+	reg, err := modules.Build(cfg.Modules, factories(), provider, modules.BuildOptions{
+		Chatter: aiClient,
+		Bot:     b,
 	})
 	if err != nil {
 		log.Fatal("module registry build failed", "err", err)
@@ -242,9 +229,8 @@ type config struct {
 	Modules               []string
 	BotOwnerID            int64
 	AdminUserIDs          map[int64]bool
-	ModuleEnv             map[string]string // per-module allowlist; only declared keys flow through
-	KVProvider            string            // empty = auto-detect; or "memory"|"firestore"|"dynamodb"
-	DynamoDBTable         string            // required when KVProvider=dynamodb
+	KVProvider            string // empty = auto-detect; or "memory"|"firestore"|"dynamodb"
+	DynamoDBTable         string // required when KVProvider=dynamodb
 }
 
 func loadConfig() config {
@@ -264,14 +250,6 @@ func loadConfig() config {
 	if n, err := strconv.Atoi(port); err != nil || n < 0 || n > 65535 {
 		log.Fatal("invalid PORT", "value", port)
 	}
-	// ModuleEnv is the per-module allowlist. Add a key here when a specific
-	// module needs it; it never auto-flows from process env. Today only
-	// PHOW2SIM_API_URL (doantu) is exposed — Gemini is wired through a typed
-	// dep, not env.
-	moduleEnv := map[string]string{}
-	if v := envMap["PHOW2SIM_API_URL"]; v != "" {
-		moduleEnv["PHOW2SIM_API_URL"] = v
-	}
 	return config{
 		Port:                  port,
 		TelegramBotToken:      envMap["TELEGRAM_BOT_TOKEN"],
@@ -283,7 +261,6 @@ func loadConfig() config {
 		Modules:               splitCSV(envMap["MODULES"]),
 		BotOwnerID:            parseInt64(envMap["BOT_OWNER_ID"]),
 		AdminUserIDs:          parseInt64Set(envMap["ADMIN_USER_IDS"]),
-		ModuleEnv:             moduleEnv,
 		KVProvider:            envMap["KV_PROVIDER"],
 		DynamoDBTable:         envMap["DYNAMODB_TABLE"],
 	}

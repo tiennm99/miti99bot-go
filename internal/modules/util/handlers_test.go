@@ -20,7 +20,7 @@ func installUtil(t *testing.T, ownerID int64) *testutil.RecordingBot {
 	rb := testutil.NewRecordingBot(t)
 	reg, err := modules.Build([]string{"util"},
 		map[string]modules.Factory{"util": util.New},
-		storage.NewMemoryProvider(), nil, modules.BuildOptions{})
+		storage.NewMemoryProvider(), modules.BuildOptions{})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}

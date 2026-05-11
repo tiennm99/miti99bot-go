@@ -36,7 +36,7 @@ func TestFirestoreProvider_For_AcceptsCanonicalNames(t *testing.T) {
 	// 1..32 chars. We can't dereference the returned FirestoreKVStore (nil
 	// client), but we can assert it's NOT an invalidStore — validation passed.
 	p := &FirestoreProvider{client: nil}
-	for _, name := range []string{"misc", "loldle-emoji", "wordle", "x", "a1_b-2"} {
+	for _, name := range []string{"misc", "demo-mod", "wordle", "x", "a1_b-2"} {
 		store := p.For(name)
 		if _, ok := store.(invalidStore); ok {
 			t.Errorf("For(%q) returned invalidStore; expected validation to pass", name)

@@ -8,7 +8,7 @@ Mid-port. Code is on `main`; first AWS deploy still pending the user's manual AW
 
 | Track | What | Status |
 |-------|------|--------|
-| Modules | util, misc, wordle, loldle (+ ability/emoji/quote/splash variants), lolschedule, semantle, doantu, twentyq | **done** |
+| Modules | util, misc, wordle, loldle, lolschedule, twentyq, trading | **done** |
 | Storage | KVStore interface; in-memory + Firestore + **DynamoDB** providers | **done** |
 | AI | Gemini API client (`internal/ai`) | **done** |
 | AWS IaC | SAM template + Makefile + GH Actions OIDC deploy | **done** |

@@ -1,8 +1,7 @@
-// Package chathelper consolidates per-module Telegram helpers that diverged
-// across wordle/loldle/loldleemoji/misc. SubjectFor, ArgAfterCommand,
-// NowMillis, Reply, ReplyHTML, WinRate previously had near-identical copies
-// in each module — one drift incident (winRate truncation) already bit
-// Phase 5b/5c. Single source here; modules import.
+// Package chathelper consolidates per-module Telegram helpers (SubjectFor,
+// ArgAfterCommand, NowMillis, Reply, ReplyHTML, WinRate) that would
+// otherwise be duplicated across every module. Single source here; modules
+// import.
 package chathelper
 
 import (

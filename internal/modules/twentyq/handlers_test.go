@@ -36,7 +36,7 @@ func install(t *testing.T, c ai.Chatter) *testutil.RecordingBot {
 	rb := testutil.NewRecordingBot(t)
 	reg, err := modules.Build([]string{"twentyq"},
 		map[string]modules.Factory{"twentyq": New},
-		storage.NewMemoryProvider(), nil,
+		storage.NewMemoryProvider(),
 		modules.BuildOptions{Chatter: c})
 	if err != nil {
 		t.Fatalf("Build: %v", err)

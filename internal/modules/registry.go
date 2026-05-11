@@ -12,8 +12,8 @@ import (
 )
 
 // moduleNameRe is intentionally looser than commandNameRe — it allows hyphen
-// so modules can keep their JS-source names verbatim (e.g. "loldle-emoji").
-// The crucial constraint is "no `:`" so the storage Prefixed wrapper's `:`
+// so module names can carry hyphenated suffixes (e.g. "loldle-classic"). The
+// crucial constraint is "no `:`" so the storage Prefixed wrapper's `:`
 // delimiter cannot be subverted; everything else is style.
 //
 // Telegram command names still need the stricter [a-z0-9_]{1,32} alphabet
@@ -83,12 +83,11 @@ func (r *Registry) Crons() []Cron {
 // Factory's Deps. Adding new optional deps here keeps Build's signature
 // stable as the dep list grows.
 type BuildOptions struct {
-	Embedder ai.Embedder
-	Chatter  ai.Chatter
-	Bot      *bot.Bot
+	Chatter ai.Chatter
+	Bot     *bot.Bot
 }
 
-func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider, env map[string]string, opts BuildOptions) (*Registry, error) {
+func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider, opts BuildOptions) (*Registry, error) {
 	if kv == nil {
 		return nil, fmt.Errorf("modules: KVProvider is required")
 	}
@@ -124,9 +123,7 @@ func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider
 
 		moduleDeps := Deps{
 			KV:       kv.For(name),
-			Env:      env,
 			Registry: reg,
-			Embedder: opts.Embedder,
 			Chatter:  opts.Chatter,
 			Bot:      opts.Bot,
 		}

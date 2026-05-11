@@ -10,7 +10,6 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/champname"
 	"github.com/tiennm99/miti99bot-go/internal/keylock"
 	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
 	"github.com/tiennm99/miti99bot-go/internal/storage"
@@ -26,9 +25,6 @@ type state struct {
 	locks     keylock.Map // serialises Get→mutate→Put per subject
 }
 
-// championName extracts the comparable name field for champname helpers.
-func championName(c *Champion) string { return c.ChampionName }
-
 // pickRandomChampion uses math/rand's mutex-protected globals so concurrent
 // /loldle handlers don't race on a shared *rand.Rand.
 func (s *state) pickRandomChampion() *Champion {
@@ -36,7 +32,7 @@ func (s *state) pickRandomChampion() *Champion {
 }
 
 func (s *state) findByName(name string) *Champion {
-	return champname.FindByExactName(s.champions, name, championName)
+	return findChampionByExactName(s.champions, name)
 }
 
 // rehydrateGuesses recomputes board rows from the stored championNames.
@@ -127,7 +123,7 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, header+"\n\n"+board)
 	}
 
-	guess := champname.Find(s.champions, arg, championName)
+	guess := findChampion(s.champions, arg)
 	if guess == nil {
 		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Champion not found: %q.", arg))
 	}

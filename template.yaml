@@ -14,7 +14,7 @@ Parameters:
 
   ModulesCSV:
     Type: String
-    Default: util,misc,wordle,loldle,loldle-ability,loldle-emoji,loldle-quote,loldle-splash,lolschedule,semantle,doantu,twentyq,trading
+    Default: util,misc,wordle,loldle,lolschedule,twentyq,trading
     Description: Comma-separated module names enabled at runtime (matches MODULES env).
 
   BotOwnerID:
@@ -26,11 +26,6 @@ Parameters:
     Type: String
     Default: ""
     Description: Comma-separated Telegram user IDs allowed to use admin commands.
-
-  Phow2simAPIURL:
-    Type: String
-    Default: ""
-    Description: Optional override for the doantu module's PHOW2SIM endpoint.
 
   # AWS Lambda Web Adapter ARM64 layer ARN. Pin a specific version so deploys
   # are reproducible. Bump by checking the latest at:
@@ -126,7 +121,6 @@ Resources:
           MODULES: !Ref ModulesCSV
           BOT_OWNER_ID: !Ref BotOwnerID
           ADMIN_USER_IDS: !Ref AdminUserIDs
-          PHOW2SIM_API_URL: !Ref Phow2simAPIURL
           # ---- Secrets (resolved from Parameter Store at deploy time) ----
           # Token rotation = update parameter, redeploy stack. For zero-redeploy
           # rotation, switch to runtime fetch in main.go.

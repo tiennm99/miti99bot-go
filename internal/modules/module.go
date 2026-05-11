@@ -60,13 +60,7 @@ type Module struct {
 	Crons    []Cron
 }
 
-// Deps is the dependency bundle a Factory receives. Each field is added in the
-// phase that introduces it; today KV, Env, and Registry exist (Gemini: Phase 07).
-//
-// Deps.Env is empty by default — process env does NOT auto-flow to modules
-// (allowlist semantics). Phase 07+ introduces a per-module env declaration so
-// keys flow only to declared consumers; this prevents a future API key from
-// silently reaching every module.
+// Deps is the dependency bundle a Factory receives.
 //
 // Deps.Registry is a pointer to the Registry being built. At factory call
 // time the Registry is partially populated (only modules earlier in the
@@ -74,12 +68,10 @@ type Module struct {
 // Modules that need to introspect commands (e.g. /help) capture this pointer
 // in their handler closures.
 type Deps struct {
-	KV       storage.KVStore   // already prefixed with the module name when passed to a Factory
-	Env      map[string]string // empty by default; per-module allowlist (Phase 07+)
-	Registry *Registry         // populated by Build; safe to capture but read-only at module use
-	Embedder ai.Embedder       // nil if GEMINI_API_KEY unset; semantle/doantu must check
-	Chatter  ai.Chatter        // nil if GEMINI_API_KEY unset; twentyq must check
-	Bot      *bot.Bot          // nil-safe: only crons that fan-out (lolschedule daily push) need it
+	KV       storage.KVStore // already prefixed with the module name when passed to a Factory
+	Registry *Registry       // populated by Build; safe to capture but read-only at module use
+	Chatter  ai.Chatter      // nil if GEMINI_API_KEY unset; twentyq must check
+	Bot      *bot.Bot        // nil-safe: only crons that fan-out (lolschedule daily push) need it
 }
 
 // Factory constructs a Module from its Deps. Spec deviation: Phase 03 plan
