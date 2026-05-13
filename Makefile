@@ -24,7 +24,7 @@ firestore-emulator: ## Start Firestore emulator on :8085 (foreground)
 # to already be running (use `make firestore-emulator` in another shell).
 test-emulator: ## Run tests with Firestore emulator (must be running)
 	FIRESTORE_EMULATOR_HOST=localhost:8085 \
-	GOOGLE_CLOUD_PROJECT=miti99bot-go-test \
+	GOOGLE_CLOUD_PROJECT=miti99bot-test \
 	go test -race -count=1 ./...
 
 # Run DynamoDB integration tests against DynamoDB Local.
@@ -78,19 +78,21 @@ dynamodb-local-stop: ## Stop DynamoDB Local
 sam-validate: ## Validate template.yaml without contacting AWS
 	sam validate --lint
 
-sam-build: build-lambda ## sam build (after make build-lambda)
-	sam build
+sam-build: build-lambda ## Produce the Lambda artifact (alias for build-lambda; sam deploy uses raw template directly)
+	@echo "Artifact ready at build/lambda/bootstrap; sam deploy --template-file template.yaml will zip it."
 
-sam-deploy: sam-build ## Deploy via SAM (uses samconfig.toml). Set ALERT_EMAIL=… optionally.
+sam-deploy: build-lambda ## Deploy via SAM (uses samconfig.toml). Set ALERT_EMAIL=… optionally.
 	@if [ -n "$$ALERT_EMAIL" ]; then \
-		sam deploy --no-confirm-changeset --no-fail-on-empty-changeset \
+		sam deploy --template-file template.yaml \
+			--no-confirm-changeset --no-fail-on-empty-changeset \
 			--parameter-overrides "AlertEmail=$$ALERT_EMAIL"; \
 	else \
-		sam deploy --no-confirm-changeset --no-fail-on-empty-changeset; \
+		sam deploy --template-file template.yaml \
+			--no-confirm-changeset --no-fail-on-empty-changeset; \
 	fi
 
 logs: ## Tail Lambda logs (last 5m). Override with SINCE=10m.
-	@sam logs --tail --stack-name miti99bot-aws-port --start-time $${SINCE:-5m}ago
+	@sam logs --tail --stack-name miti99bot --start-time $${SINCE:-5m}ago
 
 # ---- Clean ----------------------------------------------------------------
 

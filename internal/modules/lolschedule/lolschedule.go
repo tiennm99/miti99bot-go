@@ -1,7 +1,7 @@
 package lolschedule
 
 import (
-	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/modules"
 )
 
 // New is the lolschedule module Factory. The 5 user-facing commands plus the

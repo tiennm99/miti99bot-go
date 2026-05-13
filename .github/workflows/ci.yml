@@ -63,7 +63,7 @@ jobs:
         run: go build ./...
 
       - name: docker build
-        run: docker build -t miti99bot-go .
+        run: docker build -t miti99bot .
 
   iac:
     name: SAM template validate

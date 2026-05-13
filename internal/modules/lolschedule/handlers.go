@@ -7,9 +7,9 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
-	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/log"
+	"github.com/tiennm99/miti99bot/internal/modules/util/chathelper"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // state captures everything a lolschedule handler needs at runtime.
@@ -86,7 +86,7 @@ func (s *state) replyForRange(ctx context.Context, b *bot.Bot, chatID int64, fro
 }
 
 // handleSubscribe is /lolschedule_subscribe — opt the chat into the daily
-// digest (push wiring lands with Phase 09 Cloud Scheduler).
+// digest delivered by the EventBridge Scheduler cron handler.
 func (s *state) handleSubscribe(ctx context.Context, b *bot.Bot, update *models.Update) error {
 	msg := update.Message
 	if msg == nil {

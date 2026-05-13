@@ -1,21 +1,23 @@
-# AWS bootstrap commands
+# AWS account setup
 
-One-time setup steps for Phase 01 of the AWS port. After this is done, every push to `main` deploys via GitHub Actions OIDC; no human-in-loop AWS commands needed.
+One-time setup steps for a fresh AWS account. After this is done, every push to `main` deploys via GitHub Actions OIDC; no human-in-loop AWS commands needed.
+
+> For the full onboarding walkthrough (prerequisites, Telegram wiring, cost guardrails), see [`../docs/deploy-aws-free-tier-guide.md`](../docs/deploy-aws-free-tier-guide.md). This file is the condensed cheatsheet.
 
 > **Region:** `ap-southeast-1` (Singapore). Change in `samconfig.toml` if needed.
-> **Stack name:** `miti99bot-aws-port`. Change in `samconfig.toml`.
+> **Stack name:** `miti99bot`. Change in `samconfig.toml`.
 
 ---
 
 ## 1. AWS account hygiene
 
 1. Enable MFA on the root user.
-2. Create an IAM admin user `bootstrap-admin` (CLI access keys). Use only for the first `sam deploy --guided`.
+2. Create an IAM admin user `admin` (CLI access keys). Use only for the first `sam deploy --guided`.
 3. Set CLI default region:
    ```sh
-   aws configure set region ap-southeast-1 --profile bootstrap-admin
-   aws configure set aws_access_key_id  AKIA…  --profile bootstrap-admin
-   aws configure set aws_secret_access_key …   --profile bootstrap-admin
+   aws configure set region ap-southeast-1 --profile admin
+   aws configure set aws_access_key_id  AKIA…  --profile admin
+   aws configure set aws_secret_access_key …   --profile admin
    ```
 
 ## 2. SSM Parameter Store secrets
@@ -24,16 +26,16 @@ Create the four required secrets. **Names must match `template.yaml`** (`/miti99
 
 ```sh
 aws ssm put-parameter --name /miti99bot/prod/telegram-bot-token \
-    --value "<bot-father-token>" --type SecureString --profile bootstrap-admin
+    --value "<bot-father-token>" --type SecureString --profile admin
 
 aws ssm put-parameter --name /miti99bot/prod/telegram-webhook-secret \
-    --value "$(openssl rand -hex 32)" --type SecureString --profile bootstrap-admin
+    --value "$(openssl rand -hex 32)" --type SecureString --profile admin
 
 aws ssm put-parameter --name /miti99bot/prod/gemini-api-key \
-    --value "<google-ai-studio-key>" --type SecureString --profile bootstrap-admin
+    --value "<google-ai-studio-key>" --type SecureString --profile admin
 
 aws ssm put-parameter --name /miti99bot/prod/cron-shared-secret \
-    --value "$(openssl rand -hex 32)" --type SecureString --profile bootstrap-admin
+    --value "$(openssl rand -hex 32)" --type SecureString --profile admin
 ```
 
 Save the webhook + cron secrets locally — you'll set them on the Telegram side and on the EventBridge schedule headers.
@@ -47,7 +49,7 @@ aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
   --client-id-list sts.amazonaws.com \
   --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1 \
-  --profile bootstrap-admin
+  --profile admin
 ```
 
 (GitHub publishes the canonical thumbprint; verify on docs.github.com if rotated.)
@@ -60,9 +62,9 @@ Edit `aws/iam-github-oidc-trust.json` to set your AWS account ID and GitHub repo
 aws iam create-role \
   --role-name github-deploy-miti99bot \
   --assume-role-policy-document file://aws/iam-github-oidc-trust.json \
-  --profile bootstrap-admin
+  --profile admin
 
-# Permissions (broad to start; tighten in Phase 06).
+# Permissions (broad to start; tighten with stack-scoped policies later).
 for arn in \
   arn:aws:iam::aws:policy/AWSCloudFormationFullAccess \
   arn:aws:iam::aws:policy/AWSLambda_FullAccess \
@@ -75,11 +77,11 @@ for arn in \
   arn:aws:iam::aws:policy/IAMFullAccess \
   arn:aws:iam::aws:policy/AmazonS3FullAccess; do
   aws iam attach-role-policy --role-name github-deploy-miti99bot \
-    --policy-arn "$arn" --profile bootstrap-admin
+    --policy-arn "$arn" --profile admin
 done
 ```
 
-> Yes, this is broad. SAM creates IAM roles for the Lambda, so the deploy role needs `iam:CreateRole`. **Tighten in Phase 06** with custom policies scoped to the stack's resource ARNs.
+> Yes, this is broad. SAM creates IAM roles for the Lambda, so the deploy role needs `iam:CreateRole`. **Tighten later** with custom policies scoped to the stack's resource ARNs.
 
 ## 5. Add GitHub repo secrets
 
@@ -92,31 +94,30 @@ In GitHub repo settings → Secrets and variables → Actions:
 
 `AWS_ACCOUNT_ID` is not a credential — it's hidden only to keep the ARN out of the workflow file.
 
-## 6. First deploy (manual, with bootstrap admin)
+## 6. First deploy (manual)
 
 ```sh
 make build-lambda
-sam build
-AWS_PROFILE=bootstrap-admin sam deploy --guided
+AWS_PROFILE=admin sam deploy --template-file template.yaml --guided
 ```
 
 Confirm:
-- Stack name: `miti99bot-aws-port`
+- Stack name: `miti99bot`
 - Region: `ap-southeast-1`
 - Capabilities: `CAPABILITY_IAM`
 - Save to `samconfig.toml`: yes (already committed; this just confirms)
 
 After `CREATE_COMPLETE`:
 ```sh
-aws cloudformation describe-stacks --stack-name miti99bot-aws-port \
-  --query "Stacks[0].Outputs" --output table --profile bootstrap-admin
+aws cloudformation describe-stacks --stack-name miti99bot \
+  --query "Stacks[0].Outputs" --output table --profile admin
 ```
-Note the `FunctionUrl` — Phase 07 sets the Telegram webhook to it.
+Note the `FunctionUrl` — point the Telegram webhook at it (see [`../docs/deploy-aws-free-tier-guide.md`](../docs/deploy-aws-free-tier-guide.md) Step 5).
 
 ## 7. Tighten — optional but recommended
 
 Once the first deploy succeeds:
-1. Rotate / delete `bootstrap-admin` CLI keys (use only via console for emergencies).
+1. Rotate / delete `admin` CLI keys (use only via console for emergencies).
 2. Trigger a workflow_dispatch deploy via GH Actions to confirm OIDC path works without the bootstrap user.
 3. Replace the broad managed policies on `github-deploy-miti99bot` with stack-scoped custom policies.
 

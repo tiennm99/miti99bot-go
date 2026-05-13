@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // subscribersKey is the KV slot holding the per-module subscriber list.

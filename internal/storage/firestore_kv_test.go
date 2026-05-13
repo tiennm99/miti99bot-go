@@ -24,7 +24,7 @@ func requireEmulator(t *testing.T) *firestore.Client {
 	}
 	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if project == "" {
-		project = "miti99bot-go-test"
+		project = "miti99bot-test"
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

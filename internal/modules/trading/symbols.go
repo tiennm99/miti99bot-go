@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // tickerRe restricts tickers to ASCII alphanumeric, 1-16 chars. Stops

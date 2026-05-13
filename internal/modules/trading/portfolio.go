@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // Portfolio is the per-user trading state. Currency is a map for forward-

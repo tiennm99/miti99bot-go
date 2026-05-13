@@ -81,7 +81,7 @@ func (c *PriceClient) FetchPrice(ctx context.Context, ticker string) (float64, e
 	if err != nil {
 		return 0, fmt.Errorf("trading: build KBS request: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (miti99bot-go)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (miti99bot)")
 
 	resp, err := c.httpClient().Do(req)
 	if err != nil {

@@ -2,7 +2,7 @@ package server
 
 import "net/http"
 
-// HealthHandler answers GET / with a stable string so Cloud Run's HTTP probe
+// HealthHandler answers GET / with a stable string so Lambda's HTTP probe
 // and any uptime monitor can distinguish "process up" from "process listening
 // but routing broken".
 func HealthHandler() http.HandlerFunc {
@@ -17,6 +17,6 @@ func HealthHandler() http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte("miti99bot-go ok\n"))
+		_, _ = w.Write([]byte("miti99bot ok\n"))
 	}
 }

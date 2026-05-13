@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // We test the per-command KV behaviour directly — the bot/Telegram side is

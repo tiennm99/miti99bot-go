@@ -1,7 +1,7 @@
 package wordle
 
 import (
-	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/modules"
 )
 
 // New is the wordle module Factory. Loads the embedded dictionary once,

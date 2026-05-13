@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-southeast-1
-      STACK_NAME: miti99bot-aws-port
+      STACK_NAME: miti99bot
     steps:
       - uses: actions/checkout@v4
 
@@ -40,20 +40,17 @@ jobs:
       - name: Build Lambda binary
         run: make build-lambda
 
-      - name: SAM build
-        run: sam build
-
       - name: SAM deploy
         env:
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
         run: |
           if [ -n "$ALERT_EMAIL" ]; then
-            sam deploy \
+            sam deploy --template-file template.yaml \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset \
               --parameter-overrides "AlertEmail=$ALERT_EMAIL"
           else
-            sam deploy \
+            sam deploy --template-file template.yaml \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset
           fi

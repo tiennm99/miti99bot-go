@@ -9,8 +9,8 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
-	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/log"
+	"github.com/tiennm99/miti99bot/internal/modules"
 )
 
 // dailyPushCronName is the cron route segment + EventBridge schedule key.
@@ -18,7 +18,7 @@ import (
 const dailyPushCronName = "lolschedule_daily_push"
 
 // dailyPushSchedule is documentation only — the real fire time lives in
-// AWS EventBridge Scheduler / Cloud Scheduler. Cron expression is UTC;
+// EventBridge Scheduler. Cron expression is UTC;
 // 01:00 UTC == 08:00 ICT.
 const dailyPushSchedule = "0 1 * * *"
 

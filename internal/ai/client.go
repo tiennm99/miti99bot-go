@@ -25,7 +25,7 @@ var ErrRateLimited = errors.New("ai: rate limited")
 var ErrNotConfigured = errors.New("ai: GEMINI_API_KEY not set")
 
 // Client wraps a *genai.Client with the small surface the bot needs. The
-// underlying gRPC connection is reused across requests — Cloud Run cold-start
+// underlying gRPC connection is reused across requests — Lambda cold-start
 // budget makes a per-request handshake intolerable.
 //
 // Safe for concurrent use; *genai.Client is itself goroutine-safe.
@@ -35,7 +35,7 @@ type Client struct {
 
 // NewClient constructs a *Client backed by the Gemini API (not Vertex AI —
 // Vertex requires a service-account flow incompatible with the free-tier
-// Cloud Run baseline). A blank apiKey returns ErrNotConfigured so callers
+// Lambda baseline). A blank apiKey returns ErrNotConfigured so callers
 // can decide whether to skip AI-dependent module loading.
 func NewClient(ctx context.Context, apiKey string) (*Client, error) {
 	if strings.TrimSpace(apiKey) == "" {

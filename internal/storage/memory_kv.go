@@ -10,7 +10,7 @@ import (
 )
 
 // MemoryKVStore is an in-process KVStore for tests and local smoke runs.
-// It is the only implementation available until Phase 04 adds Firestore.
+// Data is lost on restart; production uses the DynamoDB provider.
 type MemoryKVStore struct {
 	mu sync.RWMutex
 	m  map[string][]byte

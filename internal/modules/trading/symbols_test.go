@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 func TestResolveSymbol_FirstTime_QueriesAndCaches(t *testing.T) {

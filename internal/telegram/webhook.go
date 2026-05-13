@@ -12,7 +12,7 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
+	"github.com/tiennm99/miti99bot/internal/log"
 )
 
 // secretTokenHeader is the case-insensitive HTTP header Telegram sets when it
@@ -27,7 +27,7 @@ const maxWebhookBody = 1 << 20
 
 // handlerTimeout caps a single Telegram update handler. Telegram retries after
 // 60s of no 2xx; 10s leaves headroom for outbound API calls inside handlers
-// without holding a Cloud Run instance long enough to block other updates.
+// without holding a Lambda instance long enough to block other updates.
 const handlerTimeout = 10 * time.Second
 
 // WebhookHandler returns an http.HandlerFunc that validates Telegram's secret

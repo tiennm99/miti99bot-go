@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-telegram/bot"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/telegram"
+	"github.com/tiennm99/miti99bot/internal/log"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/telegram"
 )
 
 // cronNameRe limits cron path segments to a safe alphabet so log injection via
@@ -20,7 +20,8 @@ import (
 // router boundary). Same shape as Telegram command names.
 var cronNameRe = regexp.MustCompile(`^[a-z0-9_]{1,32}$`)
 
-// cronAuthHeader is the shared-secret header name. Replaced by OIDC in Phase 09.
+// cronAuthHeader is the shared-secret header EventBridge Scheduler attaches when
+// invoking /cron/{name}.
 const cronAuthHeader = "X-Cron-Token"
 
 // Config wires the router's runtime dependencies.
@@ -29,9 +30,9 @@ type Config struct {
 	Registry      *modules.Registry
 	WebhookSecret string
 
-	// CronSecret is the shared-secret bridge until Phase 09 adds OIDC. Empty
-	// means /cron/{name} is fully disabled (404). Required to prevent
-	// unauthenticated triggering of billable side effects.
+	// CronSecret protects /cron/{name} against unauthenticated calls; EventBridge
+	// Scheduler attaches it as the X-Cron-Token header. Empty means /cron/{name}
+	// is fully disabled (404).
 	CronSecret string
 }
 
@@ -39,10 +40,10 @@ type Config struct {
 //
 //	GET  /                  → health
 //	POST /webhook           → Telegram update intake (constant-time secret check)
-//	POST /cron/{name}       → Cloud Scheduler entry (shared-secret check; OIDC in Phase 09)
+//	POST /cron/{name}       → EventBridge Scheduler entry (shared-secret check)
 //
 // Anything else is 404. All routes pass through LogRequests so every
-// request emits a structured `req` log line (Cloud Logging consumes them
+// request emits a structured `req` log line (CloudWatch Logs consumes them
 // for 5xx-rate alerts and per-route latency).
 func New(cfg Config) http.Handler {
 	mux := http.NewServeMux()

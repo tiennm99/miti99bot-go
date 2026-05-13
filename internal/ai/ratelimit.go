@@ -15,8 +15,7 @@ import (
 //
 // Why we don't enforce daily caps here: x/time/rate is a token bucket, not
 // a fixed-window counter. Per-day caps need a different abstraction; if we
-// hit RPD limits in practice we'll add a Firestore-backed counter. Phase 11
-// soak data will tell us if it's needed.
+// hit RPD limits in practice we'll add a DynamoDB-backed counter.
 type PerUserLimiter struct {
 	mu      sync.Mutex
 	buckets map[string]*rate.Limiter

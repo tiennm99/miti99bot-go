@@ -12,20 +12,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/ai"
-	"github.com/tiennm99/miti99bot-go/internal/log"
-	"github.com/tiennm99/miti99bot-go/internal/metrics"
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/modules/loldle"
-	"github.com/tiennm99/miti99bot-go/internal/modules/lolschedule"
-	"github.com/tiennm99/miti99bot-go/internal/modules/misc"
-	"github.com/tiennm99/miti99bot-go/internal/modules/trading"
-	"github.com/tiennm99/miti99bot-go/internal/modules/twentyq"
-	"github.com/tiennm99/miti99bot-go/internal/modules/util"
-	"github.com/tiennm99/miti99bot-go/internal/modules/wordle"
-	"github.com/tiennm99/miti99bot-go/internal/server"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
-	"github.com/tiennm99/miti99bot-go/internal/telegram"
+	"github.com/tiennm99/miti99bot/internal/ai"
+	"github.com/tiennm99/miti99bot/internal/log"
+	"github.com/tiennm99/miti99bot/internal/metrics"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/modules/loldle"
+	"github.com/tiennm99/miti99bot/internal/modules/lolschedule"
+	"github.com/tiennm99/miti99bot/internal/modules/misc"
+	"github.com/tiennm99/miti99bot/internal/modules/trading"
+	"github.com/tiennm99/miti99bot/internal/modules/twentyq"
+	"github.com/tiennm99/miti99bot/internal/modules/util"
+	"github.com/tiennm99/miti99bot/internal/modules/wordle"
+	"github.com/tiennm99/miti99bot/internal/server"
+	"github.com/tiennm99/miti99bot/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/telegram"
 )
 
 // factories is the static module catalog. Adding a new module is a one-line
@@ -45,7 +45,7 @@ func factories() map[string]modules.Factory {
 
 // firestoreInitTimeout caps Firestore client construction at startup. Cloud
 // Run cold start budget is 500ms target; firestore.NewClient is normally fast
-// but network blips can make it hang. Fail fast and let Cloud Run restart us.
+// but network blips can make it hang. Fail fast and let Lambda restart us.
 const firestoreInitTimeout = 10 * time.Second
 
 // dynamodbInitTimeout caps DynamoDB client construction at startup. Lambda
@@ -160,7 +160,7 @@ func buildProvider(ctx context.Context, cfg config) (storage.KVProvider, func(),
 		switch {
 		case os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "":
 			backend = "dynamodb"
-		case cfg.GCPProject != "" || cfg.FirestoreEmulatorHost != "":
+		case cfg.FirestoreProject != "" || cfg.FirestoreEmulatorHost != "":
 			backend = "firestore"
 		default:
 			backend = "memory"
@@ -175,7 +175,7 @@ func buildProvider(ctx context.Context, cfg config) (storage.KVProvider, func(),
 	case "firestore":
 		// Emulator ignores the project ID but the SDK still requires *some*
 		// non-empty value; supply a placeholder so emulator-only local dev works.
-		projectID := cfg.GCPProject
+		projectID := cfg.FirestoreProject
 		if projectID == "" && cfg.FirestoreEmulatorHost != "" {
 			projectID = "miti99bot-emulator"
 		}
@@ -223,7 +223,7 @@ type config struct {
 	TelegramBotToken      string
 	WebhookSecret         string
 	CronSecret            string
-	GCPProject            string
+	FirestoreProject            string
 	FirestoreEmulatorHost string
 	GeminiAPIKey          string
 	Modules               []string
@@ -255,7 +255,7 @@ func loadConfig() config {
 		TelegramBotToken:      envMap["TELEGRAM_BOT_TOKEN"],
 		WebhookSecret:         envMap["TELEGRAM_WEBHOOK_SECRET"],
 		CronSecret:            envMap["CRON_SHARED_SECRET"],
-		GCPProject:            envMap["GOOGLE_CLOUD_PROJECT"],
+		FirestoreProject:            envMap["GOOGLE_CLOUD_PROJECT"],
 		FirestoreEmulatorHost: envMap["FIRESTORE_EMULATOR_HOST"],
 		GeminiAPIKey:          envMap["GEMINI_API_KEY"],
 		Modules:               splitCSV(envMap["MODULES"]),

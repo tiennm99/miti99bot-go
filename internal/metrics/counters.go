@@ -1,15 +1,15 @@
 // Package metrics is a tiny in-memory counter store with periodic flush
-// to Cloud Logging via the project's structured logger.
+// to CloudWatch Logs via the project's structured logger.
 //
-// Why not Prometheus / OpenTelemetry: the project runs on Cloud Run free
+// Why not Prometheus / OpenTelemetry: the project runs on Lambda free
 // tier with scale-to-zero. A pull-based exporter would be scraped from
 // outside the instance and routinely hit a cold pod, defeating the point.
 // Push-based exporters (StatsD, OTLP) require a paid sink.
 //
-// Cloud Logging is already free up to a generous quota and supports
+// CloudWatch Logs is already free up to a generous quota and supports
 // log-based metrics (count over `jsonPayload.msg=metrics`) for dashboards
 // and alerts. Per-instance counters are reset on flush so the log line
-// represents a delta, which Cloud Logging's count aggregation can sum
+// represents a delta, which CloudWatch Logs's count aggregation can sum
 // across instances and time windows.
 package metrics
 
@@ -19,7 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
+	"github.com/tiennm99/miti99bot/internal/log"
 )
 
 // DefaultFlushInterval is how often Run flushes counters to the log. 60s
@@ -32,7 +32,7 @@ const DefaultFlushInterval = 60 * time.Second
 //
 // Counters use atomic.Int64 so increments don't lock; the per-name map
 // itself is guarded by an RWMutex for the rare add path. Names should be
-// short and stable — they become Cloud Logging label values.
+// short and stable — they become CloudWatch Logs label values.
 type Registry struct {
 	mu       sync.RWMutex
 	commands map[string]*atomic.Int64
@@ -131,7 +131,7 @@ func drain(m map[string]*atomic.Int64) map[string]int64 {
 //
 //	{"msg":"metrics","commands":{"wordle":3,"loldle":1},"errors":{"ai-429":1},"ai":null}
 //
-// Cloud Logging filters on `jsonPayload.msg=metrics` for dashboards.
+// CloudWatch Logs filters on `jsonPayload.msg=metrics` for dashboards.
 // Empty categories appear as null (slog's default for nil maps).
 func (r *Registry) Flush() {
 	cmds, errs, ai := r.snapshot()

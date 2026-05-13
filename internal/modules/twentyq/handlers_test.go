@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tiennm99/miti99bot-go/internal/ai"
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
-	"github.com/tiennm99/miti99bot-go/internal/testutil"
+	"github.com/tiennm99/miti99bot/internal/ai"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/testutil"
 )
 
 // scriptedChatter returns canned responses by call index. Tests script the

@@ -8,8 +8,8 @@
 //
 // Trade-off: the underlying sync.Map grows unboundedly with distinct keys
 // (~32 B each). At 1M keys that's ~32 MB — acceptable for the lifetime of
-// a Cloud Run instance, which restarts well before reaching that scale.
-// Eviction is a Phase 11 concern, not a v1 one.
+// a Lambda instance, which restarts well before reaching that scale.
+// Eviction is intentionally deferred — restart frequency keeps the working set bounded.
 package keylock
 
 import "sync"

@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	mrand "math/rand/v2"
 
-	"github.com/tiennm99/miti99bot-go/internal/ai"
-	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/ai"
+	"github.com/tiennm99/miti99bot/internal/modules"
 )
 
 // New is the twentyq module Factory. If Deps.Chatter is nil

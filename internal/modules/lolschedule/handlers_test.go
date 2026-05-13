@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
-	"github.com/tiennm99/miti99bot-go/internal/testutil"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/testutil"
 )
 
 // installSchedule wires the lolschedule module to a recording bot, with a

@@ -1,7 +1,7 @@
 package trading
 
 import (
-	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/modules"
 )
 
 // New is the trading module Factory. Five user-facing commands; no crons.

@@ -1,7 +1,7 @@
 version = 0.1
 
 [default.global.parameters]
-stack_name = "miti99bot-aws-port"
+stack_name = "miti99bot"
 
 [default.deploy.parameters]
 region = "ap-southeast-1"
@@ -9,7 +9,7 @@ capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
 fail_on_empty_changeset = false
 resolve_s3 = true
-s3_prefix = "miti99bot-aws-port"
+s3_prefix = "miti99bot"
 # Secrets MUST live in SSM Parameter Store (see aws/README.md). Never put
 # them here — this file is committed.
 parameter_overrides = [

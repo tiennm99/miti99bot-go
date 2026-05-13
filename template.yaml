@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Description: >
-  miti99bot-go: Telegram bot on AWS Lambda (Go ZIP + LWA) with DynamoDB KV
+  miti99bot: Telegram bot on AWS Lambda (Go ZIP + LWA) with DynamoDB KV
   + EventBridge cron + SSM Parameter Store secrets. Strict free-tier deploy.
 
 Parameters:
@@ -171,9 +171,8 @@ Resources:
                 Action: sqs:SendMessage
                 Resource: !GetAtt CronDLQ.Arn
 
-  # NOTE: Concrete schedules are added in Phase 04. We provision the role +
-  # DLQ here so the IaC review surface stays accurate and Phase 04 just adds
-  # AWS::Scheduler::Schedule resources.
+  # Concrete AWS::Scheduler::Schedule resources are added per cron handler;
+  # the role + DLQ above are provisioned once and reused across all schedules.
 
   # --- Cost guard -----------------------------------------------------------
 

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
+	"github.com/tiennm99/miti99bot/internal/log"
 )
 
 // statusRecorder wraps http.ResponseWriter to capture the final status
@@ -34,9 +34,8 @@ func (r *statusRecorder) effectiveStatus() int {
 //
 //	{"msg":"req","method":"POST","path":"/webhook","status":200,"ms":12}
 //
-// Cloud Logging filters on `jsonPayload.msg=req AND jsonPayload.status>=500`
-// for 5xx-rate alerting. Mirrors the JS source's index.js shape so existing
-// dashboards keep working post-cutover.
+// CloudWatch Logs filters on `jsonPayload.msg=req AND jsonPayload.status>=500`
+// for 5xx-rate alerting. Mirrors the JS source's index.js shape.
 func LogRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

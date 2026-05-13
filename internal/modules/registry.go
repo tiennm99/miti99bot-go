@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-telegram/bot"
 
-	"github.com/tiennm99/miti99bot-go/internal/ai"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/ai"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // moduleNameRe is intentionally looser than commandNameRe — it allows hyphen

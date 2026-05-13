@@ -8,9 +8,9 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/modules/util"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/modules/util"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // helpTestNoop is a stand-in handler used only to satisfy the registry's
@@ -58,7 +58,7 @@ func TestRenderHelp_GroupsByModuleAndSkipsPrivate(t *testing.T) {
 		// Locks html.EscapeString contract: & → &amp;, " → &#34;.
 		"Tom &amp; &#34;Jerry&#34;",
 		// Support footer always present.
-		"github.com/tiennm99/miti99bot-go",
+		"github.com/tiennm99/miti99bot",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\n---output---\n%s", want, out)
@@ -124,7 +124,7 @@ func TestRenderHelp_NilRegistryReturnsFooterOnly(t *testing.T) {
 	if !strings.Contains(out, "no commands registered") {
 		t.Errorf("nil registry should render placeholder; got:\n%s", out)
 	}
-	if !strings.Contains(out, "github.com/tiennm99/miti99bot-go") {
+	if !strings.Contains(out, "github.com/tiennm99/miti99bot") {
 		t.Errorf("footer missing; got:\n%s", out)
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // mkServer spins an httptest.Server returning the supplied JSON body for

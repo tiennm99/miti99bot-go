@@ -11,7 +11,7 @@ var ErrCronNotFound = errors.New("cron not found")
 
 // DispatchScheduled runs the cron registered under name with the per-module
 // prefixed Deps the registry stored at Build time. Returns ErrCronNotFound if
-// no module owns that name — Cloud Scheduler hitting an unknown route is a
+// no module owns that name — EventBridge Scheduler hitting an unknown route is a
 // configuration bug worth surfacing as a 404 at the HTTP layer.
 //
 // The handler runs synchronously in the calling goroutine; ctx propagates

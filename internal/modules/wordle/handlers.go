@@ -8,9 +8,9 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/keylock"
-	"github.com/tiennm99/miti99bot-go/internal/modules/util/chathelper"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/keylock"
+	"github.com/tiennm99/miti99bot/internal/modules/util/chathelper"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // state captures everything a wordle command needs at handler-time. Built

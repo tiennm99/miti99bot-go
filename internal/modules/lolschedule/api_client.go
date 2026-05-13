@@ -21,8 +21,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/tiennm99/miti99bot-go/internal/log"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/log"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 const (
@@ -32,14 +32,14 @@ const (
 	// Riot's own public JS bundle and serves the live site too.
 	// #nosec G101
 	apiKey    = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"
-	userAgent = "miti99bot-go/0.1 (https://t.me/miti99bot)"
+	userAgent = "miti99bot/0.1 (https://t.me/miti99bot)"
 	// CacheTTL: schedule data changes minute-by-minute during live events.
 	cacheTTL = 120 * time.Second
 	// staleMaxAge: how long to fall back to a cached payload when the
 	// upstream call fails outright.
 	staleMaxAge = 60 * 60 * time.Second
 	// httpTimeout: keep upstream calls bounded so a hung lolesports edge
-	// can't hold a Cloud Run instance.
+	// can't hold a Lambda instance.
 	httpTimeout = 8 * time.Second
 )
 

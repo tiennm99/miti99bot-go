@@ -4,7 +4,7 @@
 package util
 
 import (
-	"github.com/tiennm99/miti99bot-go/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/modules"
 )
 
 // New is the module Factory. Closes over Deps so each handler has access to

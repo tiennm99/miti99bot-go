@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tiennm99/miti99bot-go/internal/modules"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/modules"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 const testCronSecret = "shared-cron-secret"

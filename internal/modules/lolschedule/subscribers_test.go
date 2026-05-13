@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 func TestSubscribers_AddRemoveListIdempotent(t *testing.T) {

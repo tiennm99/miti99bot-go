@@ -6,8 +6,8 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/tiennm99/miti99bot-go/internal/ai"
-	"github.com/tiennm99/miti99bot-go/internal/storage"
+	"github.com/tiennm99/miti99bot/internal/ai"
+	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
 // Visibility classifies who may invoke a command. The dispatcher enforces
@@ -28,7 +28,7 @@ const (
 // purely for logging/metrics, not flow control.
 type CommandHandler func(ctx context.Context, b *bot.Bot, update *models.Update) error
 
-// CronHandler runs when Cloud Scheduler hits /cron/{name}. Crons receive the
+// CronHandler runs when EventBridge Scheduler hits /cron/{name}. Crons receive the
 // per-module-prefixed Deps via the registry; handlers should not capture the
 // base Deps from the factory closure or KV writes will collide across modules.
 type CronHandler func(ctx context.Context, deps Deps) error
@@ -43,7 +43,7 @@ type Command struct {
 
 // Cron is a single scheduled job exposed by a module.
 type Cron struct {
-	Schedule string      // documentation only; real schedule lives in Cloud Scheduler
+	Schedule string      // documentation only; real schedule lives in EventBridge Scheduler
 	Name     string      // unique within module
 	Handler  CronHandler // required
 }
@@ -74,8 +74,7 @@ type Deps struct {
 	Bot      *bot.Bot        // nil-safe: only crons that fan-out (lolschedule daily push) need it
 }
 
-// Factory constructs a Module from its Deps. Spec deviation: Phase 03 plan
-// defines `Factory func() Module` with a separate Init step. We pass Deps
-// directly so handler closures can capture them — idiomatic Go and removes a
-// lifecycle ordering trap.
+// Factory constructs a Module from its Deps. Deps are passed directly (instead
+// of a separate Init step) so handler closures can capture them — idiomatic Go
+// and removes a lifecycle ordering trap.
 type Factory func(deps Deps) Module

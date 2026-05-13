@@ -1,6 +1,6 @@
 // Package log is a thin facade over stdlib log/slog with a JSON handler
-// preconfigured for Cloud Logging. Cloud Run reads stdout line-by-line; with
-// a JSON line, Cloud Logging picks up `severity`, `message`, and `time` and
+// preconfigured for CloudWatch Logs. Lambda reads stdout line-by-line; with
+// a JSON line, CloudWatch Logs picks up `severity`, `message`, and `time` and
 // surfaces remaining fields as structured labels for filtering.
 //
 // Why a facade instead of importing slog directly: (1) callers stay

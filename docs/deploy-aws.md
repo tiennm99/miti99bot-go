@@ -1,6 +1,6 @@
 # Deploy: AWS (Lambda + DynamoDB + EventBridge)
 
-This is the production deploy path for `miti99bot-go`. Strict free-tier targets, region `ap-southeast-1`.
+This is the production deploy path for `miti99bot`. Strict free-tier targets, region `ap-southeast-1`.
 
 > **First-time setup:** see `aws/README.md`. This doc is for steady-state operations.
 
@@ -29,7 +29,7 @@ git push origin main
 Triggers `.github/workflows/deploy.yml`:
 1. OIDC assume `github-deploy-miti99bot` role
 2. `make build-lambda` (Go ARM64 ZIP-ready binary)
-3. `sam build && sam deploy`
+3. `sam deploy --template-file template.yaml`
 4. Smoke `curl <function-url>/`
 
 ### Manual (emergency / staging)
@@ -45,16 +45,16 @@ ALERT_EMAIL=you@example.com make sam-deploy   # with budget alert wired
 ```sh
 make logs SINCE=10m
 
-aws cloudformation describe-stacks --stack-name miti99bot-aws-port \
+aws cloudformation describe-stacks --stack-name miti99bot \
   --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" --output text
 
 curl -fsSL "$(...)/" | jq .                       # health JSON
 ```
 
-## Set the Telegram webhook (Phase 07)
+## Set the Telegram webhook
 
 ```sh
-URL=$(aws cloudformation describe-stacks --stack-name miti99bot-aws-port \
+URL=$(aws cloudformation describe-stacks --stack-name miti99bot \
         --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" --output text)
 SECRET=$(aws ssm get-parameter --name /miti99bot/prod/telegram-webhook-secret \
         --with-decryption --query 'Parameter.Value' --output text)
@@ -92,7 +92,7 @@ CloudFormation handles failed deploys: a failing `sam deploy` triggers automatic
 
 ```sh
 aws cloudformation update-stack \
-  --stack-name miti99bot-aws-port \
+  --stack-name miti99bot \
   --use-previous-template \
   --capabilities CAPABILITY_IAM
 ```
@@ -107,18 +107,18 @@ make sam-deploy
 
 ```sh
 # Errors / warnings in last 24h
-aws logs filter-log-events --log-group-name /aws/lambda/miti99bot-aws-port-bot \
+aws logs filter-log-events --log-group-name /aws/lambda/miti99bot-bot \
   --start-time $(($(date +%s%3N) - 86400000)) \
   --filter-pattern '{ $.level = "ERROR" }' --max-items 20
 
 # Cold start P95
-aws logs start-query --log-group-name /aws/lambda/miti99bot-aws-port-bot \
+aws logs start-query --log-group-name /aws/lambda/miti99bot-bot \
   --start-time $(($(date +%s) - 86400)) --end-time $(date +%s) \
   --query-string 'filter @type = "REPORT" | stats avg(@initDuration), pct(@initDuration, 95)'
 
 # DynamoDB throttle
 aws cloudwatch get-metric-statistics --namespace AWS/DynamoDB \
-  --metric-name ThrottledRequests --dimensions Name=TableName,Value=miti99bot-aws-port-data \
+  --metric-name ThrottledRequests --dimensions Name=TableName,Value=miti99bot-data \
   --statistics Sum --start-time $(date -u -d '24 hours ago' +%FT%TZ) \
   --end-time $(date -u +%FT%TZ) --period 3600
 
