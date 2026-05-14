@@ -101,7 +101,6 @@ Resources:
 
   BotFunction:
     Type: AWS::Serverless::Function
-    DependsOn: BotFunctionLogGroup
     Properties:
       FunctionName: !Sub "${AWS::StackName}-bot"
       CodeUri: build/lambda/

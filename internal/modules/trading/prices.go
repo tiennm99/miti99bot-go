@@ -87,7 +87,7 @@ func (c *PriceClient) FetchPrice(ctx context.Context, ticker string) (float64, e
 	if err != nil {
 		return 0, fmt.Errorf("trading: KBS request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return 0, ErrNoPrice

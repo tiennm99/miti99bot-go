@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -183,10 +182,3 @@ func (s *DynamoDBKVStore) List(ctx context.Context, prefix string) ([]string, er
 	return keys, nil
 }
 
-// errIsNotFound wraps the SDK NotFound condition. DynamoDB GetItem doesn't
-// return an error for missing items (returns empty Item), but other ops may
-// surface ResourceNotFoundException for missing tables.
-func errIsTableMissing(err error) bool {
-	var rnfe *types.ResourceNotFoundException
-	return errors.As(err, &rnfe)
-}
