@@ -1,5 +1,5 @@
 ---
-title: "Migrate miti99bot-go from GCP to AWS (Lambda + DynamoDB + EventBridge, free tier)"
+title: "Migrate miti99bot from GCP to AWS (Lambda + DynamoDB + EventBridge, free tier)"
 description: "Re-target the deploy/runtime layer from Cloud Run + Firestore + Cloud Scheduler to Lambda (Go ZIP + LWA + Function URL) + DynamoDB on-demand + EventBridge Scheduler, region ap-southeast-1, IaC via SAM, CI via GH Actions OIDC. Module code unchanged."
 status: in-progress
 priority: P2
@@ -7,7 +7,7 @@ effort: 3-4d
 branch: main
 tags: [aws, lambda, dynamodb, eventbridge, sam, port, telegram-bot, free-tier]
 created: 2026-05-10
-blockedBy: []
+blockedBy: [260515-2250-cf-data-to-aws-migration]
 blocks: []
 supersedes-deploy-of: [260508-2222-go-port-cloud-run]
 ---
@@ -24,7 +24,7 @@ Re-target only the deploy/runtime layer. Module work (Phases 03–07 of GCP plan
 ## Locked decisions
 - **Compute:** Lambda Go on `provided.al2023`, **ARM64**, ZIP package, binary `bootstrap`, build with `-tags lambda.norpc -ldflags="-s -w"`.
 - **HTTP:** Lambda Function URL (`AuthType: NONE`) + AWS Lambda Web Adapter layer → existing `http.Handler` runs unchanged.
-- **KV:** DynamoDB single-table `miti99bot`, PK=`pk` (`{module}#{key}`), attr `value` (Binary). On-demand billing.
+- **KV:** DynamoDB single-table `miti99bot`, composite key `(pk, sk)` where `pk = moduleName` and `sk = caller key`, attr `value` (Binary). On-demand billing.
 - **Cron:** EventBridge Scheduler → HTTPS target = Function URL `/cron/{name}` with `X-Cron-Token` header (token in Parameter Store). Preserves existing route shape; alternative (direct Lambda invoke) deferred.
 - **Secrets:** SSM Parameter Store SecureString. Names: `/miti99bot/{env}/telegram-token`, `…/webhook-secret`, `…/gemini-api-key`, `…/cron-token`. Fetched at cold start.
 - **Region:** `ap-southeast-1` (Singapore).
@@ -43,7 +43,7 @@ Re-target only the deploy/runtime layer. Module work (Phases 03–07 of GCP plan
 | 04 | [EventBridge cron wiring](phase-04-eventbridge-cron.md) | pending (blocked on cron handlers, see 260510-0234-pre-deploy-wrapup) | 3h | Scheduler → `/cron/{name}` with token, two crons firing on schedule |
 | 05 | [GitHub Actions deploy (OIDC + SAM)](phase-05-gha-deploy.md) | done | 3h | `deploy.yml` runs on push to `main`, builds + sam deploys idempotently |
 | 06 | [Observability + budget alert](phase-06-observability.md) | partial (budget shipped; metric filter in 260510-0234) | 2h | Logs retention set, $1 budget alert, cold-start P95 captured |
-| 07 | [Cutover + README + retire GCP paths](phase-07-cutover.md) | pending (deploy-gated) | 3h | Webhook flipped to Function URL, README rewritten, GCP code paths kept but unwired by default |
+| 07 | [Cutover + README + retire GCP paths](phase-07-cutover.md) | pending (deploy + migration gated) | 3h | Webhook flipped to Function URL after green CF→AWS migration report; README rewritten; GCP code paths kept but unwired by default |
 
 ## Dependency graph
 ```
@@ -69,7 +69,7 @@ Re-target only the deploy/runtime layer. Module work (Phases 03–07 of GCP plan
 - **Function URL auth-bypass risk** discovered: switch to API Gateway HTTP API (12-month free, then $1/M).
 
 ## Rollback
-Until Phase 07 webhook flip, the GCP runtime path remains intact. Per-phase rollback documented in each phase. Phase 07 is the only irreversible cutover step.
+Until Phase 07 webhook flip, the GCP runtime path remains intact. Per-phase rollback documented in each phase. Phase 07 now depends on `plans/260515-2250-cf-data-to-aws-migration/` producing a green parity report before the webhook moves or any Cloudflare data source is deleted.
 
 ## Open questions
 1. Direct Lambda invoke for cron vs HTTP loopback via Function URL — final call deferred to Phase 04 implementation.

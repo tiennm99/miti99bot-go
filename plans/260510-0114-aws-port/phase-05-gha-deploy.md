@@ -37,7 +37,7 @@ GitHub push to main
 - Modify: `Makefile` — `deploy` target runs `sam build && sam deploy --no-confirm-changeset`
 
 ## Implementation Steps
-1. Confirm Phase 01's IAM role trust policy includes `repo:tiennm99/miti99bot-go:ref:refs/heads/main` and `repo:tiennm99/miti99bot-go:pull_request` (for PR validation flow if `sam validate` against AWS).
+1. Confirm Phase 01's IAM role trust policy includes `repo:tiennm99/miti99bot:ref:refs/heads/main` and the matching repo subject for any manual deploy path.
 2. Write `deploy.yml`:
    ```yaml
    name: Deploy to AWS
@@ -59,7 +59,7 @@ GitHub push to main
            with: { use-installer: true }
          - uses: aws-actions/configure-aws-credentials@v4
            with:
-             role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-deploy-miti99bot
+             role-to-assume: arn:aws:iam::225603493174:role/github-deploy-miti99bot
              aws-region: ap-southeast-1
          - run: make build-lambda
          - run: sam build
@@ -69,7 +69,7 @@ GitHub push to main
              URL=$(aws cloudformation describe-stacks --stack-name miti99bot-aws-port --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" --output text)
              curl -fsSL "$URL/" | jq .
    ```
-3. Add `AWS_ACCOUNT_ID` to GitHub repo secrets (it's not a credential, but keeping the ARN out of the repo file is hygiene).
+3. Keep the AWS account ID in the committed role ARN for this repo. If the deploy account changes later, update both the workflow ARN and the IAM trust policy together.
 4. PR validation workflow (`ci.yml`): runs `go vet`, `go test`, `sam validate` (no AWS creds needed for validate).
 5. Test the full path: open a PR with a trivial change → CI green; merge → deploy fires; smoke step prints health JSON.
 6. Add a `rollback.yml` workflow_dispatch path: re-run with a chosen commit SHA. CloudFormation handles the rollback inherently.

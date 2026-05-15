@@ -20,7 +20,7 @@ Stand up the AWS account with strict $0 footprint: IAM OIDC trust for GitHub Act
 ```
 GitHub Actions ─OIDC─► AWS IAM Role (github-deploy)
                        │  └─ trust: token.actions.githubusercontent.com
-                       │  └─ scoped: repo:tiennm99/miti99bot-go:ref:refs/heads/main
+                       │  └─ scoped: repo:tiennm99/miti99bot:ref:refs/heads/main
                        │
                        └─► CloudFormation (SAM) ─► Lambda + DynamoDB + ParamStore + EventBridge + Logs
 ```
@@ -36,7 +36,7 @@ GitHub Actions ─OIDC─► AWS IAM Role (github-deploy)
 ## Implementation Steps
 1. Create AWS account (or reuse existing). Enable MFA on root, create IAM admin user for one-time bootstrap. Set region default `ap-southeast-1`.
 2. Create the GitHub OIDC identity provider in IAM: thumbprint, audience `sts.amazonaws.com`. (One-time, manual or via small CloudFormation snippet.)
-3. Create IAM role `github-deploy-miti99bot` with trust policy scoped to `repo:tiennm99/miti99bot-go:ref:refs/heads/main` and `repo:tiennm99/miti99bot-go:ref:refs/heads/dev`. Attach managed policies for SAM deploy: CloudFormation, Lambda, DynamoDB, EventBridge, IAM (PassRole only), SSM Parameter Store, Logs, S3 (SAM staging bucket).
+3. Create IAM role `github-deploy-miti99bot` with trust policy scoped to `repo:tiennm99/miti99bot:ref:refs/heads/main` and `repo:tiennm99/miti99bot:ref:refs/heads/dev`. Attach managed policies for SAM deploy: CloudFormation, Lambda, DynamoDB, EventBridge, IAM (PassRole only), SSM Parameter Store, Logs, S3 (SAM staging bucket).
 4. Write `template.yaml` skeleton:
    - `AWSTemplateFormatVersion: '2010-09-09'`, `Transform: AWS::Serverless-2016-10-31`
    - `Globals.Function`: `Runtime: provided.al2023`, `Architectures: [arm64]`, `MemorySize: 256`, `Timeout: 15`, `Tracing: Active` (still free at this volume)
