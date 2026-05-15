@@ -187,11 +187,13 @@ aws iam get-open-id-connect-provider --profile admin \
        --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 ```
 
-Edit `aws/iam-github-oidc-trust.json` — fill in your 12-digit AWS account ID and `tiennm99/miti99bot` (or your fork):
+Edit `aws/iam-github-oidc-trust.json` if you're deploying from a different AWS account or repo fork. This repo is already prefilled for account `225603493174` and `tiennm99/miti99bot`:
 
 ```sh
-sed -i "s|225603493174|$ACCT|" aws/iam-github-oidc-trust.json   # only if the placeholder differs
+sed -i "s|225603493174|$ACCT|" aws/iam-github-oidc-trust.json   # only if you are changing accounts
 ```
+
+If you change accounts, update `.github/workflows/deploy.yml` to match the same role ARN.
 
 Create the role (idempotent — `update-assume-role-policy` if it already exists):
 
@@ -283,7 +285,6 @@ In GitHub → repo Settings → Secrets and variables → Actions:
 
 | Secret | Value |
 |---|---|
-| `AWS_ACCOUNT_ID` | 12-digit AWS account ID |
 | `ALERT_EMAIL` (optional) | Email for the $1 budget alert |
 
 After this, every push to `main` triggers `.github/workflows/deploy.yml`:
@@ -292,7 +293,7 @@ After this, every push to `main` triggers `.github/workflows/deploy.yml`:
 3. `sam deploy --template-file template.yaml`
 4. Smoke `curl <function-url>/`
 
-No long-lived keys live in GitHub.
+No long-lived keys live in GitHub. The deploy workflow now uses the repo's fixed AWS account ID directly for the OIDC role ARN, so `AWS_ACCOUNT_ID` no longer needs to be stored in GitHub.
 
 ---
 

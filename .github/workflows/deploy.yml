@@ -34,7 +34,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-deploy-miti99bot
+          role-to-assume: arn:aws:iam::225603493174:role/github-deploy-miti99bot
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build Lambda binary

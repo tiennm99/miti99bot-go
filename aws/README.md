@@ -56,7 +56,7 @@ aws iam create-open-id-connect-provider \
 
 ## 4. Deploy IAM role for GitHub Actions
 
-Edit `aws/iam-github-oidc-trust.json` to set your AWS account ID and GitHub repo, then:
+Edit `aws/iam-github-oidc-trust.json` if you are changing the AWS account or GitHub repo. This repo is already prefilled for account `225603493174` and `tiennm99/miti99bot`. If you change accounts, update `.github/workflows/deploy.yml` to match the same role ARN, then:
 
 ```sh
 aws iam create-role \
@@ -89,10 +89,9 @@ In GitHub repo settings → Secrets and variables → Actions:
 
 | Secret | Value |
 |---|---|
-| `AWS_ACCOUNT_ID` | 12-digit AWS account ID |
 | `ALERT_EMAIL` (optional) | Email for the $1 budget alert |
 
-`AWS_ACCOUNT_ID` is not a credential — it's hidden only to keep the ARN out of the workflow file.
+The deploy workflow now uses the repo's fixed AWS account ID directly for the OIDC role ARN, so `AWS_ACCOUNT_ID` no longer needs to be stored in GitHub.
 
 ## 6. First deploy (manual)
 
