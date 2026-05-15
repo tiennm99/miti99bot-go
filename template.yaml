@@ -81,7 +81,7 @@ Resources:
   BotFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-bot"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}"
       RetentionInDays: 7
 
   # Lambda emits a synthetic REPORT line at the end of every invocation.
@@ -102,7 +102,7 @@ Resources:
   BotFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "${AWS::StackName}-bot"
+      FunctionName: !Ref AWS::StackName
       CodeUri: build/lambda/
       Handler: bootstrap
       Layers:
@@ -120,13 +120,11 @@ Resources:
           MODULES: !Ref ModulesCSV
           BOT_OWNER_ID: !Ref BotOwnerID
           ADMIN_USER_IDS: !Ref AdminUserIDs
-          # ---- Secrets (resolved from Parameter Store at deploy time) ----
-          # Token rotation = update parameter, redeploy stack. For zero-redeploy
-          # rotation, switch to runtime fetch in main.go.
-          TELEGRAM_BOT_TOKEN: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/telegram-bot-token:1}}"
-          TELEGRAM_WEBHOOK_SECRET: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/telegram-webhook-secret:1}}"
-          GEMINI_API_KEY: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/gemini-api-key:1}}"
-          CRON_SHARED_SECRET: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/cron-shared-secret:1}}"
+          # ---- Secrets (fetched from Parameter Store at Lambda cold start) ----
+          TELEGRAM_BOT_TOKEN_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/telegram-bot-token"
+          TELEGRAM_WEBHOOK_SECRET_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/telegram-webhook-secret"
+          GEMINI_API_KEY_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/gemini-api-key"
+          CRON_SHARED_SECRET_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/cron-shared-secret"
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: BUFFERED
@@ -137,6 +135,12 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref BotTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/miti99bot/${StackEnv}/*"
 
   # --- Cron -----------------------------------------------------------------
 

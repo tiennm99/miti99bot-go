@@ -107,12 +107,12 @@ make sam-deploy
 
 ```sh
 # Errors / warnings in last 24h
-aws logs filter-log-events --log-group-name /aws/lambda/miti99bot-bot \
+aws logs filter-log-events --log-group-name /aws/lambda/miti99bot \
   --start-time $(($(date +%s%3N) - 86400000)) \
   --filter-pattern '{ $.level = "ERROR" }' --max-items 20
 
 # Cold start P95
-aws logs start-query --log-group-name /aws/lambda/miti99bot-bot \
+aws logs start-query --log-group-name /aws/lambda/miti99bot \
   --start-time $(($(date +%s) - 86400)) --end-time $(date +%s) \
   --query-string 'filter @type = "REPORT" | stats avg(@initDuration), pct(@initDuration, 95)'
 

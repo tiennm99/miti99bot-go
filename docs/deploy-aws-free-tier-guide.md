@@ -143,7 +143,7 @@ aws ssm put-parameter --profile admin --type SecureString --overwrite \
 unset GEMINI_KEY
 ```
 
-> Skip the Gemini one if you're not using the `twentyq` module — store `"unused"` so CloudFormation can still resolve it, then drop `twentyq` from `MODULES`.
+> Skip the Gemini one if you're not using the `twentyq` module — store `"unused"` so the Lambda startup secret fetch still succeeds, then drop `twentyq` from `MODULES`.
 
 Generated secrets — random hex, no input needed:
 
@@ -372,8 +372,8 @@ To find the last good SHA quickly: `git log --oneline -- template.yaml cmd/serve
 aws ssm put-parameter --profile admin --type SecureString --overwrite \
   --name /miti99bot/prod/telegram-webhook-secret \
   --value "$(openssl rand -hex 32)"
-make sam-deploy        # picks up the latest SSM value
-# Then re-run setWebhook (Step 5) with the new secret_token.
+# Recycle the Lambda before switching Telegram to the new secret, or wait for
+# AWS to create a fresh execution environment naturally.
 ```
 
-> **The `:1` in `template.yaml` is not "version 1 forever".** `{{resolve:ssm-secure:…:1}}` is a CloudFormation pin to *whatever version 1 means at deploy time* — the literal integer is a required syntax element, not a frozen index. After `put-parameter --overwrite`, SSM bumps the version number; CloudFormation reads the latest at the next `sam deploy` and updates the Lambda env. If you want zero-redeploy rotation, switch `main.go` to fetch from SSM at startup or per-request instead of consuming the env var.
+> `template.yaml` passes only SSM parameter names to Lambda. The app fetches the current SecureString values during cold start, so no secret values are embedded in CloudFormation. Existing warm Lambda environments keep the old value until AWS recycles them or you force a function update; rotate the Telegram webhook secret by refreshing Lambda first, then re-running Step 5 with the new `secret_token`.

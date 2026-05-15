@@ -2,19 +2,19 @@ version = 0.1
 
 [default.global.parameters]
 stack_name = "miti99bot"
+region = "ap-southeast-1"
 
 [default.deploy.parameters]
 region = "ap-southeast-1"
 capabilities = "CAPABILITY_IAM"
-confirm_changeset = false
+confirm_changeset = true
 fail_on_empty_changeset = false
 resolve_s3 = true
 s3_prefix = "miti99bot"
 # Secrets MUST live in SSM Parameter Store (see aws/README.md). Never put
 # them here — this file is committed.
-parameter_overrides = [
-  "StackEnv=prod",
-]
+parameter_overrides = "StackEnv=\"prod\" ModulesCSV=\"util,misc,wordle,loldle,lolschedule,twentyq,trading\" BotOwnerID=\"1064111334\" AdminUserIDs=\"1064111334\" LambdaAdapterLayerArn=\"arn:aws:lambda:ap-southeast-1:753240598075:layer:LambdaAdapterLayerArm64:25\" AlertEmail=\"minhtienit99@gmail.com\""
+image_repositories = []
 
 [default.validate.parameters]
 lint = true

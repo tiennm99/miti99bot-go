@@ -1,0 +1,96 @@
+{
+  "commands": [
+    {
+      "command": "help",
+      "description": "Show all available commands"
+    },
+    {
+      "command": "info",
+      "description": "Show chat, thread, and sender IDs"
+    },
+    {
+      "command": "ping",
+      "description": "Health check; replies pong"
+    },
+    {
+      "command": "wordle",
+      "description": "Classic wordle; guess the 5-letter word"
+    },
+    {
+      "command": "wordle_new",
+      "description": "Start a new wordle round"
+    },
+    {
+      "command": "wordle_giveup",
+      "description": "Reveal the current wordle answer"
+    },
+    {
+      "command": "wordle_stats",
+      "description": "Show your wordle stats"
+    },
+    {
+      "command": "loldle",
+      "description": "Classic loldle; guess the champion"
+    },
+    {
+      "command": "loldle_giveup",
+      "description": "Reveal the current loldle answer"
+    },
+    {
+      "command": "loldle_stats",
+      "description": "Show your loldle stats"
+    },
+    {
+      "command": "lolschedule",
+      "description": "LoL matches for a date"
+    },
+    {
+      "command": "lolschedule_today",
+      "description": "Today's LoL esports matches"
+    },
+    {
+      "command": "lolschedule_week",
+      "description": "LoL matches for the next 7 days"
+    },
+    {
+      "command": "lolschedule_subscribe",
+      "description": "Get the daily LoL schedule digest"
+    },
+    {
+      "command": "lolschedule_unsubscribe",
+      "description": "Stop the daily LoL schedule digest"
+    },
+    {
+      "command": "twentyq",
+      "description": "20 questions; ask yes/no questions"
+    },
+    {
+      "command": "twentyq_giveup",
+      "description": "Reveal the current twentyq answer"
+    },
+    {
+      "command": "twentyq_stats",
+      "description": "Show your twentyq stats"
+    },
+    {
+      "command": "trade_topup",
+      "description": "Top up VND to your trading account"
+    },
+    {
+      "command": "trade_buy",
+      "description": "Buy VN stock at market price"
+    },
+    {
+      "command": "trade_sell",
+      "description": "Sell VN stock back to VND"
+    },
+    {
+      "command": "trade_convert",
+      "description": "Currency exchange"
+    },
+    {
+      "command": "trade_stats",
+      "description": "Show portfolio summary with P&L"
+    }
+  ]
+}

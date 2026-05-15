@@ -12,6 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/tiennm99/miti99bot/internal/ai"
 	"github.com/tiennm99/miti99bot/internal/log"
 	"github.com/tiennm99/miti99bot/internal/metrics"
@@ -52,8 +55,18 @@ const firestoreInitTimeout = 10 * time.Second
 // has a 10s init phase; we want to leave headroom for module wiring.
 const dynamodbInitTimeout = 5 * time.Second
 
+// ssmInitTimeout caps cold-start secret resolution. Secrets are fetched once
+// at startup from Parameter Store when *_PARAMETER_NAME env vars are set.
+const ssmInitTimeout = 5 * time.Second
+
 func main() {
+	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	cfg := loadConfig()
+	if err := resolveSSMSecrets(rootCtx, &cfg); err != nil {
+		log.Fatal("ssm secret resolution failed", "err", err)
+	}
 	if cfg.TelegramBotToken == "" {
 		log.Fatal("missing required env", "key", "TELEGRAM_BOT_TOKEN")
 	}
@@ -61,9 +74,6 @@ func main() {
 		log.Fatal("missing required env", "key", "TELEGRAM_WEBHOOK_SECRET",
 			"why", "non-empty secret is the only auth on /webhook")
 	}
-
-	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	// Periodic metrics flush. Cancels with rootCtx and emits one final
 	// flush on shutdown so the trailing window isn't lost.
@@ -223,7 +233,7 @@ type config struct {
 	TelegramBotToken      string
 	WebhookSecret         string
 	CronSecret            string
-	FirestoreProject            string
+	FirestoreProject      string
 	FirestoreEmulatorHost string
 	GeminiAPIKey          string
 	Modules               []string
@@ -231,6 +241,10 @@ type config struct {
 	AdminUserIDs          map[int64]bool
 	KVProvider            string // empty = auto-detect; or "memory"|"firestore"|"dynamodb"
 	DynamoDBTable         string // required when KVProvider=dynamodb
+	TelegramBotTokenParam string
+	WebhookSecretParam    string
+	CronSecretParam       string
+	GeminiAPIKeyParam     string
 }
 
 func loadConfig() config {
@@ -255,7 +269,7 @@ func loadConfig() config {
 		TelegramBotToken:      envMap["TELEGRAM_BOT_TOKEN"],
 		WebhookSecret:         envMap["TELEGRAM_WEBHOOK_SECRET"],
 		CronSecret:            envMap["CRON_SHARED_SECRET"],
-		FirestoreProject:            envMap["GOOGLE_CLOUD_PROJECT"],
+		FirestoreProject:      envMap["GOOGLE_CLOUD_PROJECT"],
 		FirestoreEmulatorHost: envMap["FIRESTORE_EMULATOR_HOST"],
 		GeminiAPIKey:          envMap["GEMINI_API_KEY"],
 		Modules:               splitCSV(envMap["MODULES"]),
@@ -263,7 +277,68 @@ func loadConfig() config {
 		AdminUserIDs:          parseInt64Set(envMap["ADMIN_USER_IDS"]),
 		KVProvider:            envMap["KV_PROVIDER"],
 		DynamoDBTable:         envMap["DYNAMODB_TABLE"],
+		TelegramBotTokenParam: strings.TrimSpace(envMap["TELEGRAM_BOT_TOKEN_PARAMETER_NAME"]),
+		WebhookSecretParam:    strings.TrimSpace(envMap["TELEGRAM_WEBHOOK_SECRET_PARAMETER_NAME"]),
+		CronSecretParam:       strings.TrimSpace(envMap["CRON_SHARED_SECRET_PARAMETER_NAME"]),
+		GeminiAPIKeyParam:     strings.TrimSpace(envMap["GEMINI_API_KEY_PARAMETER_NAME"]),
 	}
+}
+
+func resolveSSMSecrets(ctx context.Context, cfg *config) error {
+	bindings := []struct {
+		name   string
+		target *string
+	}{
+		{name: cfg.TelegramBotTokenParam, target: &cfg.TelegramBotToken},
+		{name: cfg.WebhookSecretParam, target: &cfg.WebhookSecret},
+		{name: cfg.CronSecretParam, target: &cfg.CronSecret},
+		{name: cfg.GeminiAPIKeyParam, target: &cfg.GeminiAPIKey},
+	}
+
+	targetsByName := map[string][]*string{}
+	names := make([]string, 0, len(bindings))
+	for _, b := range bindings {
+		if b.name == "" || *b.target != "" {
+			continue
+		}
+		if _, ok := targetsByName[b.name]; !ok {
+			names = append(names, b.name)
+		}
+		targetsByName[b.name] = append(targetsByName[b.name], b.target)
+	}
+	if len(names) == 0 {
+		return nil
+	}
+
+	initCtx, cancel := context.WithTimeout(ctx, ssmInitTimeout)
+	defer cancel()
+
+	awsCfg, err := awsconfig.LoadDefaultConfig(initCtx, awsconfig.WithHTTPClient(&http.Client{
+		Timeout: ssmInitTimeout,
+	}))
+	if err != nil {
+		return fmt.Errorf("load AWS config: %w", err)
+	}
+	client := ssm.NewFromConfig(awsCfg)
+	out, err := client.GetParameters(initCtx, &ssm.GetParametersInput{
+		Names:          names,
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		return fmt.Errorf("get parameters: %w", err)
+	}
+	if len(out.InvalidParameters) > 0 {
+		return fmt.Errorf("missing SSM parameters: %s", strings.Join(out.InvalidParameters, ","))
+	}
+	for _, p := range out.Parameters {
+		name := aws.ToString(p.Name)
+		value := aws.ToString(p.Value)
+		for _, target := range targetsByName[name] {
+			*target = value
+		}
+	}
+	log.Info("loaded secrets from ssm", "count", len(out.Parameters))
+	return nil
 }
 
 func splitCSV(s string) []string {

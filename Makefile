@@ -1,9 +1,16 @@
-.PHONY: help test test-emulator test-dynamodb firestore-emulator dynamodb-local dynamodb-local-stop vet build build-lambda run sam-validate sam-build sam-deploy logs clean
+.PHONY: help test test-emulator test-dynamodb firestore-emulator dynamodb-local dynamodb-local-stop vet build build-lambda run sam-validate sam-build sam-deploy telegram-setup telegram-webhook telegram-webhook-info telegram-commands telegram-commands-info logs clean
 
 # Lambda target architecture. Match Globals.Architectures in template.yaml.
 LAMBDA_GOOS   ?= linux
 LAMBDA_GOARCH ?= arm64
 LAMBDA_OUT    := build/lambda/bootstrap
+
+# AWS deploy defaults. Override as needed:
+#   make telegram-webhook AWS_PROFILE=admin STACK_NAME=miti99bot STACK_ENV=prod
+AWS_PROFILE ?= admin
+STACK_NAME  ?= miti99bot
+STACK_ENV   ?= prod
+TELEGRAM_COMMANDS_FILE ?= aws/telegram-commands.json
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS=":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -90,6 +97,55 @@ sam-deploy: build-lambda ## Deploy via SAM (uses samconfig.toml). Set ALERT_EMAI
 		sam deploy --template-file template.yaml \
 			--no-confirm-changeset --no-fail-on-empty-changeset; \
 	fi
+
+telegram-setup: telegram-webhook telegram-commands ## Register Telegram webhook and command menu
+
+telegram-webhook: ## Register Telegram webhook from stack FunctionUrl + SSM secrets
+	@set -eu; \
+	URL=$$(aws --profile "$(AWS_PROFILE)" cloudformation describe-stacks \
+		--stack-name "$(STACK_NAME)" \
+		--query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
+		--output text); \
+	TOKEN=$$(aws --profile "$(AWS_PROFILE)" ssm get-parameter \
+		--name "/miti99bot/$(STACK_ENV)/telegram-bot-token" \
+		--with-decryption --query Parameter.Value --output text); \
+	SECRET=$$(aws --profile "$(AWS_PROFILE)" ssm get-parameter \
+		--name "/miti99bot/$(STACK_ENV)/telegram-webhook-secret" \
+		--with-decryption --query Parameter.Value --output text); \
+	case "$$URL" in */) WEBHOOK_URL="$${URL}webhook" ;; *) WEBHOOK_URL="$${URL}/webhook" ;; esac; \
+	echo "Setting Telegram webhook to $$WEBHOOK_URL"; \
+	curl -sS -X POST "https://api.telegram.org/bot$${TOKEN}/setWebhook" \
+		-d "url=$${WEBHOOK_URL}" \
+		-d "secret_token=$${SECRET}" \
+		-d 'allowed_updates=["message","callback_query"]'; \
+	echo
+
+telegram-webhook-info: ## Show Telegram getWebhookInfo using token from SSM
+	@set -eu; \
+	TOKEN=$$(aws --profile "$(AWS_PROFILE)" ssm get-parameter \
+		--name "/miti99bot/$(STACK_ENV)/telegram-bot-token" \
+		--with-decryption --query Parameter.Value --output text); \
+	curl -sS "https://api.telegram.org/bot$${TOKEN}/getWebhookInfo"; \
+	echo
+
+telegram-commands: ## Register Telegram command menu from TELEGRAM_COMMANDS_FILE
+	@set -eu; \
+	TOKEN=$$(aws --profile "$(AWS_PROFILE)" ssm get-parameter \
+		--name "/miti99bot/$(STACK_ENV)/telegram-bot-token" \
+		--with-decryption --query Parameter.Value --output text); \
+	echo "Registering Telegram commands from $(TELEGRAM_COMMANDS_FILE)"; \
+	curl -sS -X POST "https://api.telegram.org/bot$${TOKEN}/setMyCommands" \
+		-H 'Content-Type: application/json' \
+		--data-binary "@$(TELEGRAM_COMMANDS_FILE)"; \
+	echo
+
+telegram-commands-info: ## Show Telegram getMyCommands using token from SSM
+	@set -eu; \
+	TOKEN=$$(aws --profile "$(AWS_PROFILE)" ssm get-parameter \
+		--name "/miti99bot/$(STACK_ENV)/telegram-bot-token" \
+		--with-decryption --query Parameter.Value --output text); \
+	curl -sS "https://api.telegram.org/bot$${TOKEN}/getMyCommands"; \
+	echo
 
 logs: ## Tail Lambda logs (last 5m). Override with SINCE=10m.
 	@sam logs --tail --stack-name miti99bot --start-time $${SINCE:-5m}ago
