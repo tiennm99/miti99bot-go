@@ -17,6 +17,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+// signalContext is defined in main.go and gives every subcommand a SIGINT /
+// SIGTERM-cancellable context — Ctrl-C mid-scan now propagates as a clean
+// context error instead of leaving a half-converted table.
+//
+// (signature mirrors signal.NotifyContext for documentation purposes; no
+// re-declaration here, just a pointer for future readers.)
+
+
 func runConvertValueToString(args []string) error {
 	fs := flag.NewFlagSet("convert-value-to-string", flag.ExitOnError)
 	table := fs.String("table", "", "target DynamoDB table (required)")
@@ -28,7 +36,8 @@ func runConvertValueToString(args []string) error {
 		return fmt.Errorf("--table is required")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := signalContext()
+	defer cancel()
 	cfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("aws config: %w", err)

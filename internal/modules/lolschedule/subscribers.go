@@ -30,6 +30,11 @@ func listSubscribers(ctx context.Context, kv storage.KVStore) ([]int64, error) {
 
 // addSubscriber appends chatID if absent. Returns true on first-add, false
 // when already subscribed (idempotent).
+//
+// Concurrency: the list lives in a single KV slot, so a concurrent
+// Get→mutate→Put from two chats subscribing in the same millisecond would
+// drop one write. Callers MUST serialize through state.subscribersMu (or an
+// equivalent module-scoped lock) before calling this.
 func addSubscriber(ctx context.Context, kv storage.KVStore, chatID int64) (bool, error) {
 	ids, err := listSubscribers(ctx, kv)
 	if err != nil {
@@ -49,6 +54,9 @@ func addSubscriber(ctx context.Context, kv storage.KVStore, chatID int64) (bool,
 
 // removeSubscriber drops chatID from the list. Returns true when removed,
 // false when chatID wasn't present (idempotent).
+//
+// Concurrency: same single-slot Get→mutate→Put as addSubscriber; callers
+// must hold state.subscribersMu.
 func removeSubscriber(ctx context.Context, kv storage.KVStore, chatID int64) (bool, error) {
 	ids, err := listSubscribers(ctx, kv)
 	if err != nil {

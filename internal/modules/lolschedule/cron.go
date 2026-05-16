@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -12,6 +13,40 @@ import (
 	"github.com/tiennm99/miti99bot/internal/log"
 	"github.com/tiennm99/miti99bot/internal/modules"
 )
+
+// terminalSendErrorMarkers are substrings of Telegram API errors that mean the
+// chat will never accept messages again (blocked, deactivated, kicked, chat
+// gone). Detecting these lets the daily-push handler prune the subscriber
+// list so dead chats stop consuming the 30-msg/s global budget.
+//
+// String matching is fragile by nature, but the bot library surfaces these
+// directly in err.Error() and Telegram has used the same wording for years.
+// The false-negative path (we miss a new wording, dead chat lingers) is
+// strictly safer than the false-positive path (we wrongly prune a live chat).
+var terminalSendErrorMarkers = []string{
+	"bot was blocked by the user",
+	"user is deactivated",
+	"bot is not a member",
+	"chat not found",
+	"group chat was upgraded",
+	"have no rights to send",
+	"chat was deleted",
+}
+
+// isTerminalSendError reports whether err indicates the chat is permanently
+// unreachable. Used by runDailyPush to drive auto-unsubscription.
+func isTerminalSendError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	for _, m := range terminalSendErrorMarkers {
+		if strings.Contains(msg, m) {
+			return true
+		}
+	}
+	return false
+}
 
 // dailyPushCronName is the cron route segment + EventBridge schedule key.
 // Must match the regex in internal/server/router.go (^[a-z0-9_]{1,32}$).
@@ -80,6 +115,7 @@ func runDailyPush(ctx context.Context, s *state, sender messageSender) error {
 
 	throttle := len(subs) > telegramRateLimitThreshold
 	var sent, failed int
+	var deadChats []int64
 	for i, chatID := range subs {
 		if throttle && i > 0 {
 			select {
@@ -95,14 +131,48 @@ func runDailyPush(ctx context.Context, s *state, sender messageSender) error {
 		}); err != nil {
 			log.Warn("lolschedule daily push send failed", "chat", chatID, "err", err)
 			failed++
+			if isTerminalSendError(err) {
+				deadChats = append(deadChats, chatID)
+			}
 			continue
 		}
 		sent++
 	}
+
+	// Best-effort prune. Failure here just leaves the dead chats in the list
+	// for tomorrow's push — same behaviour as before this code existed, so
+	// strictly an improvement even when the writes fail.
+	pruned := pruneDeadSubscribers(ctx, s, deadChats)
+
 	log.Info("lolschedule daily push complete",
 		"subscribers", len(subs),
 		"sent", sent,
 		"failed", failed,
+		"pruned", pruned,
 		"throttled", throttle)
 	return nil
+}
+
+// pruneDeadSubscribers removes chatIDs flagged as permanently unreachable.
+// Serializes through state.subscribersMu so a concurrent /subscribe handler
+// doesn't lose its write. Returns the number actually removed (idempotent if
+// a subscriber unsubscribed between the failed send and this call).
+func pruneDeadSubscribers(ctx context.Context, s *state, deadChats []int64) int {
+	if len(deadChats) == 0 {
+		return 0
+	}
+	s.subscribersMu.Lock()
+	defer s.subscribersMu.Unlock()
+	removed := 0
+	for _, chatID := range deadChats {
+		ok, err := removeSubscriber(ctx, s.kv, chatID)
+		if err != nil {
+			log.Warn("lolschedule prune dead subscriber failed", "chat", chatID, "err", err)
+			continue
+		}
+		if ok {
+			removed++
+		}
+	}
+	return removed
 }

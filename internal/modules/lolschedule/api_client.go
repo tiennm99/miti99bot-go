@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"unicode/utf8"
 
 	"github.com/tiennm99/miti99bot/internal/log"
 	"github.com/tiennm99/miti99bot/internal/storage"
@@ -259,13 +260,20 @@ func (c *Client) GetEventsCached(ctx context.Context, kv storage.KVStore, from, 
 	return nil, fetchErr
 }
 
-// truncate clips a string to maxLen runes with "..." if cut. Keeps the log
-// output bounded — lolesports occasionally returns multi-MB error pages.
+// truncate clips a string to a rune-boundary prefix whose byte length is
+// <= maxLen, appending "..." if cut. Keeps log output bounded — lolesports
+// occasionally returns multi-MB error pages, and team/player names mix in
+// Korean/Chinese characters that a raw byte slice would split mid-codepoint
+// (producing replacement glyphs in CloudWatch).
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
 	}
-	return s[:maxLen] + "..."
+	cut := maxLen
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut] + "..."
 }
 
 // ErrEmptyResult is reserved for explicit "no events" scenarios where the

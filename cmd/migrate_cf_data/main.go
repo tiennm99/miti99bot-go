@@ -37,11 +37,20 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/tiennm99/miti99bot/internal/migration"
 )
+
+// signalContext returns a context cancelled on Ctrl-C / SIGTERM. Used by every
+// subcommand so a mid-scan abort leaves a clean error trail instead of a
+// half-converted table the operator has to reason about.
+func signalContext() (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -86,7 +95,8 @@ func runInventory(args []string) error {
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
+	ctx, cancel := signalContext()
+	defer cancel()
 	keys, err := kv.ListKeys(ctx)
 	if err != nil {
 		return fmt.Errorf("list keys: %w", err)
@@ -128,7 +138,8 @@ func runKVImport(args []string) error {
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
+	ctx, cancel := signalContext()
+	defer cancel()
 	var writer *migration.DynamoDBWriter
 	if !*dryRun {
 		cfg, err := awsconfig.LoadDefaultConfig(ctx)
@@ -186,7 +197,9 @@ func runTradingAuditDump(args []string) error {
 	if err != nil {
 		return err
 	}
-	rows, err := d1.Query(context.Background(),
+	ctx, cancel := signalContext()
+	defer cancel()
+	rows, err := d1.Query(ctx,
 		"SELECT id, user_id, symbol, side, qty, price_vnd, ts FROM trading_trades ORDER BY id", nil)
 	if err != nil {
 		return fmt.Errorf("d1 query: %w", err)
@@ -195,12 +208,19 @@ func runTradingAuditDump(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
+	// Surface Close's error: an audit JSONL that fails to flush is silently
+	// truncated otherwise. Encode succeeding doesn't guarantee fsync — if
+	// the final Close hits ENOSPC the operator must see it (this file is
+	// evidence; a partial dump is worse than no dump).
 	enc := json.NewEncoder(f)
 	for _, r := range rows {
 		if err := enc.Encode(r); err != nil {
+			_ = f.Close()
 			return err
 		}
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("close audit dump: %w", err)
 	}
 	fmt.Printf("Wrote %d rows to %s\n", len(rows), *out)
 	return nil

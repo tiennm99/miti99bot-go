@@ -28,8 +28,9 @@ func installUtil(t *testing.T, ownerID int64) *testutil.RecordingBot {
 	return rb
 }
 
-func TestInfo_PrivateChat(t *testing.T) {
-	rb := installUtil(t, 0)
+func TestInfo_PrivateChat_OwnerAllowed(t *testing.T) {
+	// /info is Protected — sender must be the bot owner to get a reply.
+	rb := installUtil(t, 42)
 	rb.Bot.ProcessUpdate(context.Background(), testutil.NewPrivateMessage(42, "/info"))
 
 	got := rb.LastSent().Text()
@@ -40,8 +41,8 @@ func TestInfo_PrivateChat(t *testing.T) {
 	}
 }
 
-func TestInfo_GroupChat(t *testing.T) {
-	rb := installUtil(t, 0)
+func TestInfo_GroupChat_OwnerAllowed(t *testing.T) {
+	rb := installUtil(t, 7)
 	rb.Bot.ProcessUpdate(context.Background(), testutil.NewGroupMessage(-100, 7, "/info"))
 
 	got := rb.LastSent().Text()
@@ -52,13 +53,22 @@ func TestInfo_GroupChat(t *testing.T) {
 	}
 }
 
-func TestInfo_ChannelMessageNoFrom(t *testing.T) {
+func TestInfo_DeniedToNonOwner(t *testing.T) {
+	// Non-admin sender → Protected denies silently (no reply, no leak of
+	// the command's existence).
+	rb := installUtil(t, 999)
+	rb.Bot.ProcessUpdate(context.Background(), testutil.NewGroupMessage(-100, 7, "/info"))
+	if calls := rb.Sent(); len(calls) != 0 {
+		t.Errorf("non-owner /info replied: %+v", calls)
+	}
+}
+
+func TestInfo_DeniedToChannelMessageNoFrom(t *testing.T) {
+	// Channel posts have no From. Protected denies (no sender to check).
 	rb := installUtil(t, 0)
 	rb.Bot.ProcessUpdate(context.Background(), testutil.NewChannelMessage(-200, "/info"))
-
-	got := rb.LastSent().Text()
-	if !strings.Contains(got, "sender id: n/a") {
-		t.Errorf("info channel reply missing 'sender id: n/a'; got %q", got)
+	if calls := rb.Sent(); len(calls) != 0 {
+		t.Errorf("channel-post /info replied: %+v", calls)
 	}
 }
 

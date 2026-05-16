@@ -16,6 +16,12 @@ import (
 // Why we don't enforce daily caps here: x/time/rate is a token bucket, not
 // a fixed-window counter. Per-day caps need a different abstraction; if we
 // hit RPD limits in practice we'll add a DynamoDB-backed counter.
+//
+// Memory bound: the buckets map is never evicted. Each entry costs ~120 B.
+// On Lambda the container recycles every ~hour, so the map size is bounded
+// by "distinct subjects within one container lifetime" — small enough to
+// not justify an LRU. Same rationale as keylock.Map; if either ever runs
+// outside Lambda for long-lived processes, both will need eviction.
 type PerUserLimiter struct {
 	mu      sync.Mutex
 	buckets map[string]*rate.Limiter

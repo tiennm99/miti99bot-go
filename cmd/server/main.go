@@ -136,9 +136,12 @@ func main() {
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
-		// 6 min accommodates /cron/{name}; the webhook handler enforces a
-		// tighter per-update ctx timeout internally.
-		WriteTimeout: 6 * time.Minute,
+		// 75s = cron handler cap (60s, internal/server/timeouts.go) plus a
+		// 15s margin for response serialization. On Lambda the 30s function
+		// timeout supersedes this; the tighter ceiling matters only for
+		// local non-Lambda runs where a 6-minute slow-loris write was the
+		// previous (over-generous) bound.
+		WriteTimeout: 75 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 

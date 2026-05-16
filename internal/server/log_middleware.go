@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/tiennm99/miti99bot/internal/log"
@@ -36,16 +37,42 @@ func (r *statusRecorder) effectiveStatus() int {
 //
 // CloudWatch Logs filters on `jsonPayload.msg=req AND jsonPayload.status>=500`
 // for 5xx-rate alerting. Mirrors the JS source's index.js shape.
+//
+// The req line is emitted from a deferred closure so a panic in a downstream
+// handler still produces an observable log entry — without this, a cron
+// panic would disappear silently (http.Server does its own recover but never
+// runs middleware again on the way out).
 func LogRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w}
+		defer func() {
+			rec.status = recoverPanicStatus(recover(), rec.status)
+			log.Info("req",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", rec.effectiveStatus(),
+				"ms", time.Since(start).Milliseconds(),
+			)
+		}()
 		next.ServeHTTP(rec, r)
-		log.Info("req",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", rec.effectiveStatus(),
-			"ms", time.Since(start).Milliseconds(),
-		)
 	})
+}
+
+// recoverPanicStatus folds a recovered panic into the status to log: returns
+// 500 if a panic was recovered (and re-panics nothing — http.Server will
+// terminate the connection cleanly while the deferred req log still runs),
+// otherwise returns the original status untouched.
+//
+// Re-panicking would lose the deferred log line in some recover-order edge
+// cases; absorbing the panic here matches the webhook handler's posture of
+// "log the failure, keep the goroutine clean".
+func recoverPanicStatus(rec any, currentStatus int) int {
+	if rec == nil {
+		return currentStatus
+	}
+	log.Error("middleware recovered panic",
+		"panic", rec,
+		"stack", string(debug.Stack()))
+	return http.StatusInternalServerError
 }

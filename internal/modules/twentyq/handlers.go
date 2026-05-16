@@ -93,7 +93,13 @@ func (s *state) handleTwentyq(ctx context.Context, b *bot.Bot, update *models.Up
 	}
 	// Solved-but-lingering rounds → start fresh transparently (JS-parity).
 	if game != nil && game.Solved {
-		_ = clearGame(ctx, s.kv, subject)
+		// Best-effort delete: a hard failure here means the solved-state
+		// branch re-enters every call and the user is stuck. Log but keep
+		// going — the fresh-round write below will overwrite the slot
+		// regardless.
+		if err := clearGame(ctx, s.kv, subject); err != nil {
+			log.Warn("twentyq clearGame on solved-relaunch failed", "subject", subject, "err", err)
+		}
 		game = nil
 	}
 

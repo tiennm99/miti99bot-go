@@ -112,6 +112,24 @@ func TestWebhookHandler_AcceptsValidUpdate(t *testing.T) {
 	}
 }
 
+func TestTruncateRunes_KeepsUTF8Valid(t *testing.T) {
+	// Single-byte (ASCII): output must equal a byte slice when boundary aligns.
+	if got := truncateRunes("hello world", 5); got != "hello" {
+		t.Errorf("ascii: got %q, want %q", got, "hello")
+	}
+	// Multi-byte (Vietnamese): max=5 bytes, "ầ" is 3 bytes ("\xe1\xba\xa7").
+	// "h" (1) + "ầ" (3) = 4 bytes; next rune would push to 7. truncate at 5
+	// would land mid-rune; the helper must walk back to byte 4 so the slice
+	// ends on a rune boundary and the result decodes cleanly.
+	if got := truncateRunes("hầuhầuhầu", 5); got != "hầu" {
+		t.Errorf("vietnamese: got %q (len %d), want %q (len %d)", got, len(got), "hầu", len("hầu"))
+	}
+	// Length-below-cap path: pass through unchanged.
+	if got := truncateRunes("abc", 10); got != "abc" {
+		t.Errorf("short: got %q, want %q", got, "abc")
+	}
+}
+
 // panicUpdate matches the panicHandler registered below by /panic command.
 const panicUpdate = `{"update_id":2,"message":{"message_id":1,"date":1,"chat":{"id":1,"type":"private"},"from":{"id":1,"is_bot":false,"first_name":"x"},"text":"/panic","entities":[{"type":"bot_command","offset":0,"length":6}]}}`
 

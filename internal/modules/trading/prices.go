@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -26,13 +27,23 @@ const kbsHTTPTimeout = 10 * time.Second
 type PriceClient struct {
 	HTTP *http.Client
 	URL  string
+
+	// defaultClient memoises the zero-value HTTP fallback so the transport's
+	// connection pool survives across FetchPrice calls — /trade_stats fans
+	// out per held ticker, and a fresh client per call means a fresh TLS
+	// handshake per ticker.
+	defaultOnce   sync.Once
+	defaultClient *http.Client
 }
 
 func (c *PriceClient) httpClient() *http.Client {
 	if c.HTTP != nil {
 		return c.HTTP
 	}
-	return &http.Client{Timeout: kbsHTTPTimeout}
+	c.defaultOnce.Do(func() {
+		c.defaultClient = &http.Client{Timeout: kbsHTTPTimeout}
+	})
+	return c.defaultClient
 }
 
 func (c *PriceClient) baseURL() string {

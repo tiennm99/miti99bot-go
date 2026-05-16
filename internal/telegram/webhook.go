@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"runtime/debug"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -41,13 +42,20 @@ const handlerTimeout = 10 * time.Second
 func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 	secretBytes := []byte(secret)
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Rejection paths use bare status codes (no response body) so internet
+		// scanners hitting the public Function URL can't fingerprint this as a
+		// Telegram webhook from the response text. CloudWatch metric filters
+		// still see the distinct status codes (401 / 405 / 413 / 400), and the
+		// structured log lines below carry the *reason* for operator triage.
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			log.Warn("webhook rejected", "reason", "method", "method", r.Method)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 		got := []byte(r.Header.Get(secretTokenHeader))
 		if subtle.ConstantTimeCompare(got, secretBytes) != 1 {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			log.Warn("webhook rejected", "reason", "secret_mismatch")
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -59,10 +67,12 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 			// distinguish "body too big" from generic malformed JSON.
 			var maxBytesErr *http.MaxBytesError
 			if errors.As(err, &maxBytesErr) {
-				http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+				log.Warn("webhook rejected", "reason", "body_too_large")
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
 			}
-			http.Error(w, "bad request", http.StatusBadRequest)
+			log.Warn("webhook rejected", "reason", "bad_json", "err", err)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -73,9 +83,11 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 		// Recover panics so a buggy handler does not propagate up to the
 		// http.Server (which would close the response mid-write and trigger
 		// Telegram's 24-hour retry loop on the same poisoned update).
+		panicked := false
 		func() {
 			defer func() {
 				if rec := recover(); rec != nil {
+					panicked = true
 					log.Error("webhook handler panic",
 						"panic", rec,
 						"stack", string(debug.Stack()))
@@ -83,13 +95,35 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 			}()
 			b.ProcessUpdate(ctx, &update)
 		}()
-		w.WriteHeader(http.StatusOK)
+		// Suppress the trailing 200 if a panic occurred: a poisoned handler
+		// may have already written headers/body, and a second WriteHeader
+		// here emits `superfluous response.WriteHeader` noise. The
+		// LogRequests middleware will mark this as 500 from its own recover
+		// path; we just stay quiet here.
+		if !panicked {
+			w.WriteHeader(http.StatusOK)
+		}
 	}
 }
 
 // dispatchTextPreview caps message text in dispatch logs so chatty media
 // captions or long DM threads don't bloat CloudWatch / drive up cost.
 const dispatchTextPreview = 64
+
+// truncateRunes returns the longest prefix of s whose UTF-8 byte length is
+// <= maxBytes AND that ends on a rune boundary. Byte-slicing alone would
+// split a multi-byte rune (Vietnamese, emoji, CJK), producing invalid UTF-8
+// in the log line that downstream JSON encoders replace with U+FFFD.
+func truncateRunes(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	cut := maxBytes
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
+}
 
 // logDispatch emits a single structured line per inbound update so the
 // CloudWatch trail has chat type + command text without resorting to
@@ -104,7 +138,7 @@ func logDispatch(u *models.Update) {
 		text = u.Message.Caption
 	}
 	if len(text) > dispatchTextPreview {
-		text = text[:dispatchTextPreview] + "…"
+		text = truncateRunes(text, dispatchTextPreview) + "…"
 	}
 	log.Info("dispatch",
 		"update_id", u.ID,

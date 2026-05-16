@@ -14,19 +14,28 @@ import (
 	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
-// fakeSender records every SendMessage call. errOn returns an error for the
-// configured chat IDs; all others succeed.
+// fakeSender records every SendMessage call. errOn returns a transient
+// failure for the configured chat IDs; terminalErrOn returns a
+// permanent-failure message string the dead-subscriber pruner recognises.
+// All others succeed.
 type fakeSender struct {
-	mu    sync.Mutex
-	calls []bot.SendMessageParams
-	errOn map[int64]bool
+	mu            sync.Mutex
+	calls         []bot.SendMessageParams
+	errOn         map[int64]bool
+	terminalErrOn map[int64]bool
 }
 
 func (f *fakeSender) SendMessage(_ context.Context, p *bot.SendMessageParams) (*models.Message, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls = append(f.calls, *p)
-	if id, ok := p.ChatID.(int64); ok && f.errOn[id] {
+	id, ok := p.ChatID.(int64)
+	if ok && f.terminalErrOn[id] {
+		// String shape that isTerminalSendError matches; verifies the marker
+		// list works against a realistic Telegram error message.
+		return nil, errors.New("Forbidden: bot was blocked by the user")
+	}
+	if ok && f.errOn[id] {
 		return nil, errors.New("fakeSender: induced failure for chat " + chatIDString(id))
 	}
 	return &models.Message{}, nil
@@ -135,6 +144,72 @@ func TestRunDailyPush_PartialFailureContinues(t *testing.T) {
 	// All three chats should be attempted even though chat 200 failed.
 	if len(sender.calls) != 3 {
 		t.Errorf("expected 3 attempts (failure does not abort batch), got %d", len(sender.calls))
+	}
+}
+
+// TestRunDailyPush_PrunesDeadSubscribers locks in the auto-cleanup of chats
+// that have permanently blocked the bot. Recoverable (transient) errors
+// MUST NOT trigger removal — only terminal Telegram errors do.
+func TestRunDailyPush_PrunesDeadSubscribers(t *testing.T) {
+	s := newTestState(t)
+	seedFreshCache(t, s.kv, nil)
+
+	chatIDs := []int64{100, 200, 300, 400}
+	for _, id := range chatIDs {
+		if _, err := addSubscriber(context.Background(), s.kv, id); err != nil {
+			t.Fatalf("addSubscriber %d: %v", id, err)
+		}
+	}
+
+	sender := &fakeSender{
+		// 200 hit a transient failure → keep on list. 400 is permanently blocked
+		// → prune from list.
+		errOn:         map[int64]bool{200: true},
+		terminalErrOn: map[int64]bool{400: true},
+	}
+	if err := runDailyPush(context.Background(), s, sender); err != nil {
+		t.Fatalf("runDailyPush: %v", err)
+	}
+
+	remaining, err := listSubscribers(context.Background(), s.kv)
+	if err != nil {
+		t.Fatalf("listSubscribers: %v", err)
+	}
+	want := []int64{100, 200, 300} // 400 removed; 200 retained despite transient error
+	if len(remaining) != len(want) {
+		t.Fatalf("subscribers after prune: got %v, want %v", remaining, want)
+	}
+	for i, id := range want {
+		if remaining[i] != id {
+			t.Errorf("subscriber[%d]: got %d, want %d", i, remaining[i], id)
+		}
+	}
+}
+
+func TestIsTerminalSendError(t *testing.T) {
+	terminals := []string{
+		"Forbidden: bot was blocked by the user",
+		"Forbidden: user is deactivated",
+		"Bad Request: chat not found",
+		"Bad Request: group chat was upgraded to a supergroup chat",
+	}
+	for _, msg := range terminals {
+		if !isTerminalSendError(errors.New(msg)) {
+			t.Errorf("isTerminalSendError(%q) = false, want true", msg)
+		}
+	}
+	transients := []string{
+		"connection reset by peer",
+		"Too Many Requests: retry after 30",
+		"context deadline exceeded",
+	}
+	for _, msg := range transients {
+		if isTerminalSendError(errors.New(msg)) {
+			t.Errorf("isTerminalSendError(%q) = true, want false (transient)", msg)
+		}
+	}
+	if isTerminalSendError(nil) {
+		t.Error("isTerminalSendError(nil) = true, want false")
 	}
 }
 

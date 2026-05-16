@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"runtime/debug"
 	"strings"
 
 	"github.com/go-telegram/bot"
@@ -57,23 +58,31 @@ func cronHandler(reg *modules.Registry, secret string) http.HandlerFunc {
 	secretBytes := []byte(secret)
 	cronDisabled := secret == ""
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Rejection paths use bare status codes (no response body) so a
+		// scanner hitting /cron/ can't fingerprint the route from the
+		// response text. Status codes remain distinct for CloudWatch
+		// metric filters; structured log lines carry the reason for
+		// operator triage.
 		if cronDisabled {
-			http.NotFound(w, r)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			log.Warn("cron rejected", "reason", "method", "method", r.Method)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 		got := []byte(r.Header.Get(cronAuthHeader))
 		if subtle.ConstantTimeCompare(got, secretBytes) != 1 {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			log.Warn("cron rejected", "reason", "secret_mismatch")
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		name := strings.TrimPrefix(r.URL.Path, "/cron/")
 		if !cronNameRe.MatchString(name) {
-			http.NotFound(w, r)
+			log.Warn("cron rejected", "reason", "bad_name", "name", name)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -81,13 +90,31 @@ func cronHandler(reg *modules.Registry, secret string) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), defaultCronTimeout)
 		defer cancel()
 
-		if err := modules.DispatchScheduled(ctx, name, reg); err != nil {
-			if errors.Is(err, modules.ErrCronNotFound) {
-				http.NotFound(w, r)
+		// Recover panics with cron-name context BEFORE the LogRequests
+		// middleware's safety-net recover sees them — otherwise CloudWatch
+		// would just show "middleware recovered panic" with no clue which
+		// scheduled job blew up. EventBridge sees 500 either way.
+		var dispatchErr error
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					log.Error("cron handler panic",
+						"route", "/cron",
+						"name", name,
+						"panic", rec,
+						"stack", string(debug.Stack()))
+					dispatchErr = errors.New("cron handler panicked")
+				}
+			}()
+			dispatchErr = modules.DispatchScheduled(ctx, name, reg)
+		}()
+		if dispatchErr != nil {
+			if errors.Is(dispatchErr, modules.ErrCronNotFound) {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			log.Error("cron failed", "route", "/cron", "name", name, "err", err)
-			http.Error(w, "cron failed", http.StatusInternalServerError)
+			log.Error("cron failed", "route", "/cron", "name", name, "err", dispatchErr)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)

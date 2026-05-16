@@ -2,6 +2,7 @@ package lolschedule
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -19,6 +20,10 @@ type state struct {
 	// nowFn allows tests to inject a deterministic clock. Production code
 	// uses time.Now via the default zero-value.
 	nowFn func() time.Time
+	// subscribersMu serializes Get→mutate→Put on the single subscribers KV
+	// slot. Two concurrent /lolschedule_subscribe calls in the same
+	// millisecond would otherwise race and drop one append.
+	subscribersMu sync.Mutex
 }
 
 func (s *state) now() time.Time {
@@ -92,13 +97,16 @@ func (s *state) handleSubscribe(ctx context.Context, b *bot.Bot, update *models.
 	if msg == nil {
 		return nil
 	}
+	s.subscribersMu.Lock()
+	defer s.subscribersMu.Unlock()
 	added, err := addSubscriber(ctx, s.kv, msg.Chat.ID)
 	if err != nil {
 		return err
 	}
 	if added {
 		return chathelper.Reply(ctx, b, msg,
-			"✅ Subscribed. You'll get today's LoL schedule at 08:00 ICT (push activates with the cron rollout).")
+			"✅ Subscribed. You'll get today's LoL schedule at 08:00 ICT.\n"+
+				"If you block the bot, you'll be auto-unsubscribed on the next push.")
 	}
 	return chathelper.Reply(ctx, b, msg, "Already subscribed.")
 }
@@ -109,6 +117,8 @@ func (s *state) handleUnsubscribe(ctx context.Context, b *bot.Bot, update *model
 	if msg == nil {
 		return nil
 	}
+	s.subscribersMu.Lock()
+	defer s.subscribersMu.Unlock()
 	removed, err := removeSubscriber(ctx, s.kv, msg.Chat.ID)
 	if err != nil {
 		return err
