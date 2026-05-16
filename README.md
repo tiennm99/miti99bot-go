@@ -7,7 +7,7 @@ Plug-n-play Telegram bot framework in Go. Runs on AWS Lambda + DynamoDB + EventB
 | Module | What it does |
 |---|---|
 | `util` | `/help`, `/info`, `/stickerid` |
-| `misc` | Coin flip, dice, RNG utilities |
+| `misc` | `/ping`, `/mstats`, `/trongtruonghop` disclaimer |
 | `wordle` | Daily Wordle game |
 | `loldle` | League-of-Legends "guess the champion" |
 | `lolschedule` | Pro-match schedule + daily push |

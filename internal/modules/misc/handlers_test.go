@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-telegram/bot/models"
+
 	"github.com/tiennm99/miti99bot/internal/modules"
 	"github.com/tiennm99/miti99bot/internal/storage"
 	"github.com/tiennm99/miti99bot/internal/testutil"
@@ -83,6 +85,83 @@ func TestMstats_DeniedToNonAdmin(t *testing.T) {
 
 	if calls := rb.Sent(); len(calls) != 0 {
 		t.Errorf("non-admin /mstats produced replies: %+v", calls)
+	}
+}
+
+// trongTruongHopUpdate is the inline counterpart of testutil.NewPrivateMessage
+// for cases that need control over From (username, names). The dispatcher
+// requires a bot_command entity, so we lift that from the helper API by reusing
+// NewPrivateMessage and overwriting From.
+func trongTruongHopUpdate(t *testing.T, text string, from *models.User) *models.Update {
+	t.Helper()
+	u := testutil.NewPrivateMessage(from.ID, text)
+	u.Message.From = from
+	return u
+}
+
+func TestTrongTruongHop_DefaultArgUsesVNG(t *testing.T) {
+	rb, _ := installMisc(t, 999)
+	rb.Bot.ProcessUpdate(context.Background(), trongTruongHopUpdate(t, "/trongtruonghop",
+		&models.User{ID: 7, Username: "boss", FirstName: "Boss"}))
+
+	got := rb.LastSent().Text()
+	if !strings.Contains(got, "VNG") {
+		t.Errorf("reply missing default target VNG: %q", got)
+	}
+	if n := strings.Count(got, "@boss"); n != 2 {
+		t.Errorf("reply mentions @boss %d times, want 2: %q", n, got)
+	}
+}
+
+func TestTrongTruongHop_CustomArg(t *testing.T) {
+	rb, _ := installMisc(t, 999)
+	rb.Bot.ProcessUpdate(context.Background(), trongTruongHopUpdate(t, "/trongtruonghop Acme Corp",
+		&models.User{ID: 7, Username: "boss", FirstName: "Boss"}))
+
+	got := rb.LastSent().Text()
+	if !strings.Contains(got, "Acme Corp") {
+		t.Errorf("reply missing custom arg Acme Corp: %q", got)
+	}
+	if strings.Contains(got, "VNG") {
+		t.Errorf("reply unexpectedly contains default VNG: %q", got)
+	}
+}
+
+func TestTrongTruongHop_HTMLEscapesArg(t *testing.T) {
+	rb, _ := installMisc(t, 999)
+	rb.Bot.ProcessUpdate(context.Background(), trongTruongHopUpdate(t, "/trongtruonghop <script>",
+		&models.User{ID: 7, Username: "boss", FirstName: "Boss"}))
+
+	got := rb.LastSent().Text()
+	if !strings.Contains(got, "&lt;script&gt;") {
+		t.Errorf("reply did not HTML-escape arg: %q", got)
+	}
+	if strings.Contains(got, "<script>") {
+		t.Errorf("reply leaked raw <script>: %q", got)
+	}
+}
+
+func TestTrongTruongHop_NoUsernameFallsBackToLink(t *testing.T) {
+	rb, _ := installMisc(t, 999)
+	rb.Bot.ProcessUpdate(context.Background(), trongTruongHopUpdate(t, "/trongtruonghop",
+		&models.User{ID: 42, FirstName: "Anh"})) // no Username
+
+	got := rb.LastSent().Text()
+	wantLink := `<a href="tg://user?id=42">Anh</a>`
+	if n := strings.Count(got, wantLink); n != 2 {
+		t.Errorf("reply contains link %q %d times, want 2: %q", wantLink, n, got)
+	}
+}
+
+func TestTrongTruongHop_EmptyDisplayNameFallsBackToThanhVien(t *testing.T) {
+	rb, _ := installMisc(t, 999)
+	rb.Bot.ProcessUpdate(context.Background(), trongTruongHopUpdate(t, "/trongtruonghop",
+		&models.User{ID: 42})) // no Username, no FirstName/LastName
+
+	got := rb.LastSent().Text()
+	wantLink := `<a href="tg://user?id=42">thành viên</a>`
+	if n := strings.Count(got, wantLink); n != 2 {
+		t.Errorf("reply contains fallback link %d times, want 2: %q", n, got)
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html"
+	"strings"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -20,6 +22,14 @@ import (
 
 // lastPingKey is the per-module KV key /ping writes and /mstats reads.
 const lastPingKey = "last_ping"
+
+// defaultTarget is the substituted "investigator" name when /trongtruonghop is
+// invoked without an argument.
+const defaultTarget = "VNG"
+
+// trongTruongHopTemplate is the disclaimer rendered by /trongtruonghop. Three
+// %s slots: target (escaped), sender mention, sender mention.
+const trongTruongHopTemplate = "Trong trường hợp nhóm này bị điều tra bởi %s, %s khẳng định không liên quan tới nhóm hoặc những cá nhân khác trong nhóm này. %s không rõ tại sao lại có mặt ở đây vào thời điểm này, có lẽ tài khoản đã được thêm bởi một bên thứ ba."
 
 // lastPing mirrors the JS bot's wire format: { at: <ms-since-epoch number> }.
 // Stored as int64 ms-epoch (not time.Time → RFC3339) so a future cross-runtime
@@ -36,6 +46,7 @@ func New(deps modules.Deps) modules.Module {
 			pingCommand(deps),
 			mstatsCommand(deps),
 			fortytwoCommand(),
+			trongTruongHopCommand(),
 		},
 	}
 }
@@ -83,6 +94,45 @@ func mstatsCommand(deps modules.Deps) modules.Command {
 				text = "Could not load stats. Try again later."
 			}
 			return chathelper.Reply(ctx, b, update.Message, text)
+		},
+	}
+}
+
+// senderMention renders the mention used inside the trongtruonghop template.
+// Prefer @username (Telegram resolves it server-side and enforces a safe
+// charset). Fall back to a tg://user?id link with the user's display name when
+// the account has no username; escape the name because first/last names can
+// legitimately contain '<' or '&'.
+func senderMention(u *models.User) string {
+	if u == nil {
+		return "thành viên"
+	}
+	if u.Username != "" {
+		return "@" + u.Username
+	}
+	name := strings.TrimSpace(u.FirstName + " " + u.LastName)
+	if name == "" {
+		name = "thành viên"
+	}
+	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, u.ID, html.EscapeString(name))
+}
+
+func trongTruongHopCommand() modules.Command {
+	return modules.Command{
+		Name:        "trongtruonghop",
+		Visibility:  modules.VisibilityPublic,
+		Description: "Phát biểu disclaimer cho thành viên hiện tại",
+		Handler: func(ctx context.Context, b *bot.Bot, update *models.Update) error {
+			if update.Message == nil || update.Message.From == nil {
+				return nil
+			}
+			arg := strings.TrimSpace(chathelper.ArgAfterCommand(update.Message.Text))
+			if arg == "" {
+				arg = defaultTarget
+			}
+			mention := senderMention(update.Message.From)
+			text := fmt.Sprintf(trongTruongHopTemplate, html.EscapeString(arg), mention, mention)
+			return chathelper.ReplyHTML(ctx, b, update.Message, text)
 		},
 	}
 }

@@ -18,9 +18,10 @@ func TestNew_RegistersExpectedCommands(t *testing.T) {
 	mod := New(deps)
 
 	want := map[string]modules.Visibility{
-		"ping":     modules.VisibilityPublic,
-		"mstats":   modules.VisibilityProtected,
-		"fortytwo": modules.VisibilityPrivate,
+		"ping":           modules.VisibilityPublic,
+		"mstats":         modules.VisibilityProtected,
+		"fortytwo":       modules.VisibilityPrivate,
+		"trongtruonghop": modules.VisibilityPublic,
 	}
 	if len(mod.Commands) != len(want) {
 		t.Fatalf("commands count = %d, want %d", len(mod.Commands), len(want))
