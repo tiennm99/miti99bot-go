@@ -1,55 +1,59 @@
 ---
 phase: 3
-title: "Trading and durable KV import"
+title: "Durable KV import (trading included)"
 status: pending
 priority: P1
-effort: "4-6h"
+effort: "2h"
 dependencies: [1, 2]
 ---
 
-# Phase 03: Trading and durable KV import
+# Phase 03: Durable KV import (trading included)
 
 ## Overview
-Run the first real data movement into DynamoDB: import durable KV records and transform old D1 trading data into the current AWS portfolio shape. This phase intentionally does not move ephemeral state or try to preserve abandoned feature surfaces.
+Copy the 9 durable Cloudflare KV records into DynamoDB under the live runtime key shape. Trading is included as a flat KV copy — the JS Worker already snapshots `Portfolio` JSON into `trading:user:*`, so no D1 transform is required (locked in Phase 01).
 
 ## Requirements
-- Functional: import approved KV keys plus trading data into DynamoDB while preserving the full current `Portfolio` contract, not just balances/holdings.
-- Non-functional: preserve current runtime schemas exactly, avoid duplicate writes on rerun, and keep historical-only data out of the hot path unless explicitly requested.
+- Functional: each migrated KV key lands in DynamoDB at `(pk=moduleName, sk=callerKey)` with the original CF KV value placed in the `value` attribute, byte-for-byte where possible.
+- Non-functional: idempotent — rerun must not duplicate or corrupt; skipped/failed records must be reported, not silently dropped.
 
 ## Architecture
-- KV import target uses the same live DynamoDB shape the runtime already expects: `pk = moduleName`, `sk = caller key`.
-- Durable key policy from Phase 01 drives import filters:
-  - keep `stats:*`, `config:*`, `subscribers`, `last_ping`, approved trading records
-  - reject `game:*`, `matches:*`, `sym:*`
-- Trading import is a transform:
-  - source: D1 exports from the exact authoritative tables locked in Phase 01
-  - target: `trading` module KV entries with keys `user:<telegram_id>`
-  - value: `internal/modules/trading/portfolio.go` JSON shape (`currency`, `assets`, `meta`)
-  - `meta.createdAt` and `meta.invested` must be mapped from explicit source fields or derivations approved in Phase 01 before this phase starts
-- Historical trade rows are exported for audit only unless the user later asks to restore history as a separate feature.
+- Single import mode: KV → DynamoDB. No D1 transform path.
+- Durable key set (locked in Phase 01):
+  - `wordle:stats:*`
+  - `loldle:stats:*`
+  - `loldle:config:*`
+  - `twentyq:stats:*`
+  - `lolschedule:subscribers`
+  - `trading:user:*`
+- Skip set: `trading:sym:*` (cache), retired modules (`doantu`, `loldle-ability`, `loldle-emoji`, `semantle` stats keys), `misc:last_ping` (never written upstream).
+- Optional sub-task: dump `trading_trades` (D1) to JSONL for cold audit. Not an import input. Operator-elective.
 
 ## Related Code Files
-- Modify: `cmd/migrate_cf_data/main.go` — add the trading import mode once Phase 01 locks authoritative source tables
-- Create: `internal/migration/trading_transform.go`
-- Create: `internal/migration/kv_filter.go`
-- Create: `internal/migration/import_report.go`
-- Modify: `docs/cf-to-aws-migration-runbook.md`
-- Read only: `internal/modules/trading/portfolio.go`, `internal/modules/wordle/state.go`, `internal/modules/loldle/state.go`, `internal/modules/twentyq/state.go`, `internal/modules/lolschedule/subscribers.go`
+- Modify: `cmd/migrate_cf_data/main.go` — wire up the KV-copy run mode
+- Create: `internal/migration/kv_filter.go` — durable/skip allowlist driven by the Phase 01 matrix
+- Create: `internal/migration/import_report.go` — counts for imported / skipped / failed
+- Create: `internal/migration/trading_audit_dump.go` — optional D1 → JSONL exporter (operator-elective)
+- Modify: `docs/cf-to-aws-migration-runbook.md` — append import command + report layout
+- Read only: `internal/storage/dynamodb_kv.go`, `internal/modules/trading/portfolio.go`
 
 ## Implementation Steps
-1. Implement KV filters from the Phase 01 migration matrix.
-2. Build the D1-to-portfolio transform using the current `Portfolio` JSON contract.
-3. Import durable KV records into DynamoDB using module/key parity.
-4. Import transformed trading portfolios into the `trading` module namespace.
-5. Emit an import report with counts for imported, skipped, archived, and failed records.
-6. Capture raw trading exports locally for audit if retention is needed outside runtime state.
+1. Wire the KV allowlist filter into the import binary so only Phase 01 durable keys are read.
+2. For each durable KV key, read the raw value and write to DynamoDB at the matching `(pk, sk)`. Preserve original bytes.
+3. Implement idempotency via conditional `PutItem` or `attribute_not_exists` guard, fall back to overwrite with operator flag.
+4. Emit an import report (stdout + JSON file) with per-prefix counts: imported, skipped, failed.
+5. Add the optional `--trading-audit-dump <path>` flag that streams `trading_trades` rows to a local JSONL file. Default off.
+6. Update the runbook with the exact command operators run, and the expected report layout.
 
 ## Success Criteria
-- [ ] Durable KV keys land in DynamoDB under the exact runtime key names.
-- [ ] Trading users get correct `Portfolio` JSON records, including `meta.createdAt` and `meta.invested`.
-- [ ] Re-running the import does not duplicate or corrupt data.
-- [ ] Skipped datasets are reported explicitly, not silently dropped.
-- [ ] Historical-only trading rows are archived or intentionally ignored by policy.
+- [ ] All 9 durable keys land in DynamoDB at the runtime-expected `(pk, sk)`.
+- [ ] `trading:user:<id>` round-trips through the Go runtime's `Portfolio` JSON unmarshal without modification (parity check).
+- [ ] Re-running the import without flags is a no-op (no duplicates, no corruption).
+- [ ] Skipped-by-policy keys (cache, retired modules) are listed in the report, not silently dropped.
+- [ ] Optional `trading_trades` audit dump produces JSONL with one row per trade when flag is passed.
 
 ## Risk Assessment
-Biggest risk is a wrong trading transform that gives users the wrong balances or holdings. Mitigation: derive the target object from the current `Portfolio` type only, spot-check several real users, and keep raw D1 exports so any discrepancy can be recomputed without touching Cloudflare again.
+- KV value encoding drift: CF KV may return values as strings while DynamoDB attribute typing prefers `B`/`S`. Mitigation: round-trip a known portfolio record and assert byte parity before bulk import.
+- Idempotency: an overwrite-by-default rerun could silently revert post-cutover writes. Mitigation: default to `attribute_not_exists` guard and require explicit `--overwrite` flag.
+
+## Notes
+- Phase 03 used to assume a D1 → Portfolio transform. That was wrong: KV already holds the final shape. Earlier `trading_transform.go` work is dropped.

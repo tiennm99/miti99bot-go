@@ -1,10 +1,11 @@
 ---
 phase: 2
 title: "Backfill toolchain and safety rails"
-status: pending
+status: completed
 priority: P1
 effort: "3-4h"
 dependencies: [1]
+completed: 2026-05-16
 ---
 
 # Phase 02: Backfill toolchain and safety rails
@@ -44,11 +45,17 @@ Build operator-run migration tooling in Go that can read legacy Cloudflare data,
 6. Document the exact operator workflow in the runbook.
 
 ## Success Criteria
-- [ ] Tooling reads CF KV metadata and values without touching app code paths.
-- [ ] Trading import mode accepts local D1 JSON exports.
-- [ ] Every command supports `--dry-run`.
-- [ ] Import path is idempotent or safely merge-based.
-- [ ] Checkpoint/resume behavior is either justified and documented or intentionally omitted.
+- [x] Tooling reads CF KV metadata and values without touching app code paths. (`internal/migration/cloudflare_kv_client.go`)
+- [x] ~~Trading import mode accepts local D1 JSON exports.~~ → invalidated by Phase 01. Trading is a flat KV copy; D1 is audit-only via `trading-audit-dump --out=<jsonl>`.
+- [x] Every command supports `--dry-run`. (kv-import has --dry-run; inventory and trading-audit-dump are read-only by construction so a dry-run flag is redundant)
+- [x] Import path is idempotent or safely merge-based. (`attribute_not_exists(pk)` guard; `--overwrite` is explicit opt-in)
+- [x] Checkpoint/resume behavior is intentionally omitted: Phase 01 inventory shows 21 keys total (well below the threshold where resume earns its complexity cost).
+
+## Outcome notes (2026-05-16)
+- Files created: `cmd/migrate_cf_data/main.go`, `internal/migration/policy.go`, `cloudflare_kv_client.go`, `cloudflare_d1_client.go`, `dynamodb_writer.go`, `report.go` + four `*_test.go` files.
+- Verify command (`cmd/verify_cf_aws_parity/`) intentionally moved to Phase 04 to remove the cross-phase ownership collision.
+- Toolchain smoke-tested against prod CF: `inventory` → 22 keys observed (one cache key drift since Phase 01 inventory); `kv-import --dry-run` → 9 durable keys map to runtime `(pk, sk)` exactly.
+- All `go test ./...` pass; `go vet ./...` clean.
 
 ## Risk Assessment
 The main risk is embedding too much migration logic into one giant binary. Mitigation: split command entrypoints and keep shared logic in small `internal/migration/` helpers so each command stays reviewable and under the repo's file-size guidance.
