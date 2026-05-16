@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -44,18 +45,22 @@ func (a Auth) Permits(v Visibility, update *models.Update) bool {
 
 // Install registers every command in the registry with the Telegram bot.
 //
-// MatchTypeCommand expects the bare command name without the leading slash;
-// the library compares against entity bytes after the "/" prefix.
+// Uses RegisterHandlerMatchFunc with a local matcher rather than the library's
+// bot.MatchTypeCommand because the library compares the full bot_command
+// entity bytes for equality. In groups, Telegram clients send /cmd@botname,
+// so the entity bytes are "cmd@botname" — never equal to the registered
+// command name "cmd". The matcher below strips the @suffix before comparing.
 //
 // auth gates Protected/Private commands; pass a zero-value Auth to deny all
 // Protected/Private commands (the right answer for a misconfigured deploy).
 func Install(b *bot.Bot, reg *Registry, auth Auth) {
 	for name, cmd := range reg.AllCommands {
 		cmdCopy := cmd // capture by value for the closure
-		b.RegisterHandler(
-			bot.HandlerTypeMessageText,
-			name,
-			bot.MatchTypeCommand,
+		nameCopy := name
+		b.RegisterHandlerMatchFunc(
+			func(update *models.Update) bool {
+				return matchCommand(nameCopy, update)
+			},
 			func(ctx context.Context, b *bot.Bot, update *models.Update) {
 				if !auth.Permits(cmdCopy.Visibility, update) {
 					return // silent — do not leak existence of gated commands
@@ -68,4 +73,38 @@ func Install(b *bot.Bot, reg *Registry, auth Auth) {
 			},
 		)
 	}
+}
+
+// matchCommand reports whether update is a text message whose bot_command
+// entity (after stripping any @botname suffix) equals name. Mirrors the
+// library's HandlerTypeMessageText + MatchTypeCommand semantics but tolerates
+// the group-form /cmd@botname that the library rejects.
+//
+// Telegram routes /cmd@otherbot only to otherbot, so an @suffix present in
+// the entity addresses *this* bot — no need to verify against our username.
+func matchCommand(name string, update *models.Update) bool {
+	if update == nil || update.Message == nil {
+		return false
+	}
+	text := update.Message.Text
+	for _, e := range update.Message.Entities {
+		if e.Type != models.MessageEntityTypeBotCommand {
+			continue
+		}
+		// Bounds check: defensive against malformed entities from a future
+		// API revision; the library's match func omits this so a bad entity
+		// would panic the goroutine before our recover() in webhook.go.
+		end := e.Offset + e.Length
+		if e.Offset < 0 || end > len(text) || e.Length < 1 {
+			continue
+		}
+		tok := text[e.Offset+1 : end] // drop leading '/'
+		if i := strings.IndexByte(tok, '@'); i >= 0 {
+			tok = tok[:i]
+		}
+		if tok == name {
+			return true
+		}
+	}
+	return false
 }

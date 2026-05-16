@@ -66,6 +66,8 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 			return
 		}
 
+		logDispatch(&update)
+
 		ctx, cancel := context.WithTimeout(r.Context(), handlerTimeout)
 		defer cancel()
 		// Recover panics so a buggy handler does not propagate up to the
@@ -83,4 +85,31 @@ func WebhookHandler(b *bot.Bot, secret string) http.HandlerFunc {
 		}()
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+// dispatchTextPreview caps message text in dispatch logs so chatty media
+// captions or long DM threads don't bloat CloudWatch / drive up cost.
+const dispatchTextPreview = 64
+
+// logDispatch emits a single structured line per inbound update so the
+// CloudWatch trail has chat type + command text without resorting to
+// the library's pointer-printing debug mode. Cheap (no allocation when
+// the message is short) and fires once per webhook hit.
+func logDispatch(u *models.Update) {
+	if u == nil || u.Message == nil {
+		return
+	}
+	text := u.Message.Text
+	if text == "" {
+		text = u.Message.Caption
+	}
+	if len(text) > dispatchTextPreview {
+		text = text[:dispatchTextPreview] + "…"
+	}
+	log.Info("dispatch",
+		"update_id", u.ID,
+		"chat_id", u.Message.Chat.ID,
+		"chat_type", string(u.Message.Chat.Type),
+		"text", text,
+	)
 }
