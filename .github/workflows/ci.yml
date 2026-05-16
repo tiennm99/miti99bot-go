@@ -26,13 +26,14 @@ jobs:
       - name: go vet
         run: go vet ./...
 
-      # golangci-lint-action v7 is required for golangci-lint v2.x.
-      # Pinning to v2.12.x because our .golangci.yml targets Go 1.25 and
-      # earlier v2.x releases were built against go1.24, which the lint
-      # config rejects with "Go language version used to build golangci-lint
-      # is lower than the targeted Go version".
+      # Pinning the lint binary to v2.12.x because our .golangci.yml targets
+      # Go 1.25 and earlier v2.x releases were built against go1.24, which the
+      # lint config rejects with "Go language version used to build
+      # golangci-lint is lower than the targeted Go version".
+      # Action v9 is the first Node 24-native release; still accepts any
+      # golangci-lint >= v2.1.0.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
 
