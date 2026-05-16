@@ -16,9 +16,9 @@ jobs:
       matrix:
         go: ['1.25']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
           cache: true
@@ -69,8 +69,8 @@ jobs:
     name: SAM template validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/setup-sam@v2
+      - uses: actions/checkout@v6
+      - uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
       - name: sam validate (offline)
