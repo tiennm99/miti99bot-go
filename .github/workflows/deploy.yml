@@ -63,3 +63,49 @@ jobs:
             --output text)
           echo "FunctionUrl=$URL"
           curl -fsSL --max-time 30 "$URL/" | tee /tmp/smoke.json | jq .
+
+      - name: Register Telegram webhook
+        env:
+          STACK_ENV: prod
+        run: |
+          set -euo pipefail
+          URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
+            --output text)
+          TOKEN=$(aws ssm get-parameter \
+            --name "/miti99bot/${STACK_ENV}/telegram-bot-token" \
+            --with-decryption --query Parameter.Value --output text)
+          echo "::add-mask::$TOKEN"
+          SECRET=$(aws ssm get-parameter \
+            --name "/miti99bot/${STACK_ENV}/telegram-webhook-secret" \
+            --with-decryption --query Parameter.Value --output text)
+          echo "::add-mask::$SECRET"
+          WEBHOOK_URL="${URL%/}/webhook"
+          echo "Setting Telegram webhook to ${WEBHOOK_URL}"
+          RESP=$(curl -fsS --max-time 30 -X POST \
+            "https://api.telegram.org/bot${TOKEN}/setWebhook" \
+            -d "url=${WEBHOOK_URL}" \
+            -d "secret_token=${SECRET}" \
+            -d 'allowed_updates=["message","callback_query"]')
+          echo "$RESP" | jq -e '.ok == true' >/dev/null \
+            || { echo "setWebhook failed: $RESP"; exit 1; }
+          echo "$RESP" | jq '{ok, result, description}'
+
+      - name: Register Telegram command menu
+        env:
+          STACK_ENV: prod
+        run: |
+          set -euo pipefail
+          TOKEN=$(aws ssm get-parameter \
+            --name "/miti99bot/${STACK_ENV}/telegram-bot-token" \
+            --with-decryption --query Parameter.Value --output text)
+          echo "::add-mask::$TOKEN"
+          echo "Registering Telegram commands from aws/telegram-commands.json"
+          RESP=$(curl -fsS --max-time 30 -X POST \
+            "https://api.telegram.org/bot${TOKEN}/setMyCommands" \
+            -H 'Content-Type: application/json' \
+            --data-binary "@aws/telegram-commands.json")
+          echo "$RESP" | jq -e '.ok == true' >/dev/null \
+            || { echo "setMyCommands failed: $RESP"; exit 1; }
+          echo "$RESP" | jq '{ok, result, description}'

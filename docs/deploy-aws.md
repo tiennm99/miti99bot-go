@@ -53,6 +53,8 @@ curl -fsSL "$(...)/" | jq .                       # health JSON
 
 ## Set the Telegram webhook
 
+> `.github/workflows/deploy.yml` auto-runs `setWebhook` + `setMyCommands` after every push to `main`. The snippet below is the break-glass equivalent for manual / out-of-band fixes (e.g. rerun from a workstation when CI is unavailable).
+
 ```sh
 URL=$(aws cloudformation describe-stacks --stack-name miti99bot \
         --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" --output text)

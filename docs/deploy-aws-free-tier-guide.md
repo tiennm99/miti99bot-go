@@ -258,6 +258,8 @@ aws cloudformation describe-stacks --profile admin \
 
 ## Step 5 — Point Telegram at the webhook
 
+> For first-time setup only. After `Step 6` wires the GitHub workflow, every push to `main` auto-runs `setWebhook` + `setMyCommands`; this manual block is the break-glass path.
+
 ```sh
 URL=…   # from previous command
 TOKEN=$(aws ssm get-parameter --profile admin \
