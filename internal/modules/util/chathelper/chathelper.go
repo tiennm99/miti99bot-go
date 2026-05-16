@@ -54,18 +54,35 @@ func ArgAfterCommand(text string) string {
 // NowMillis returns current UTC ms-since-epoch.
 func NowMillis() int64 { return time.Now().UTC().UnixMilli() }
 
-// Reply sends a plain-text response to the given chat.
-func Reply(ctx context.Context, b *bot.Bot, chatID int64, text string) error {
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{ChatID: chatID, Text: text})
+// Reply sends a plain-text response to the chat the inbound message came from.
+//
+// Forwards MessageThreadID so replies in a forum-supergroup topic stay in the
+// same topic. Telegram routes outgoing messages with an absent/zero
+// message_thread_id to the General topic — that mis-routing is the precise
+// reason this helper takes the whole message instead of just a chat ID.
+func Reply(ctx context.Context, b *bot.Bot, msg *models.Message, text string) error {
+	if msg == nil {
+		return nil
+	}
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:          msg.Chat.ID,
+		MessageThreadID: msg.MessageThreadID,
+		Text:            text,
+	})
 	return err
 }
 
-// ReplyHTML sends a Telegram HTML-formatted response to the given chat.
-func ReplyHTML(ctx context.Context, b *bot.Bot, chatID int64, text string) error {
+// ReplyHTML sends a Telegram HTML-formatted response to the chat the inbound
+// message came from. Forwards MessageThreadID — see Reply for rationale.
+func ReplyHTML(ctx context.Context, b *bot.Bot, msg *models.Message, text string) error {
+	if msg == nil {
+		return nil
+	}
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    chatID,
-		Text:      text,
-		ParseMode: models.ParseModeHTML,
+		ChatID:          msg.Chat.ID,
+		MessageThreadID: msg.MessageThreadID,
+		Text:            text,
+		ParseMode:       models.ParseModeHTML,
 	})
 	return err
 }

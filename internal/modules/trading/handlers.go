@@ -48,12 +48,16 @@ func newState(kv storage.KVStore) *state {
 // because state under "user:0" would collide across all such updates.
 // Defensive against From.ID == 0 (anonymized senders / future Telegram
 // schema drift) for the same reason.
-func senderInfo(update *models.Update) (userID int64, chatID int64, ok bool) {
+//
+// Chat targeting (ID + forum-topic thread) lives on update.Message — pass
+// that to chathelper.Reply directly; this helper intentionally returns only
+// the per-user state key.
+func senderInfo(update *models.Update) (userID int64, ok bool) {
 	msg := update.Message
 	if msg == nil || msg.From == nil || msg.From.ID == 0 {
-		return 0, 0, false
+		return 0, false
 	}
-	return msg.From.ID, msg.Chat.ID, true
+	return msg.From.ID, true
 }
 
 // argsAfterCommand splits the command body into whitespace-separated args.
@@ -67,18 +71,18 @@ func argsAfterCommand(text string) []string {
 }
 
 func (s *state) handleTopup(ctx context.Context, b *bot.Bot, update *models.Update) error {
-	userID, chatID, ok := senderInfo(update)
+	userID, ok := senderInfo(update)
 	if !ok {
-		return chathelper.Reply(ctx, b, update.Message.Chat.ID,
+		return chathelper.Reply(ctx, b, update.Message,
 			"Cannot identify user — trading only works in private/group chats with a sender.")
 	}
 	args := argsAfterCommand(update.Message.Text)
 	if len(args) < 1 {
-		return chathelper.Reply(ctx, b, chatID, "Usage: /trade_topup <amount>\nExample: /trade_topup 5000000")
+		return chathelper.Reply(ctx, b, update.Message, "Usage: /trade_topup <amount>\nExample: /trade_topup 5000000")
 	}
 	amount, err := strconv.ParseFloat(args[0], 64)
 	if err != nil || amount <= 0 {
-		return chathelper.Reply(ctx, b, chatID, "Amount must be a positive number.")
+		return chathelper.Reply(ctx, b, update.Message, "Amount must be a positive number.")
 	}
 
 	defer s.locks.Acquire(strconv.FormatInt(userID, 10))()
@@ -86,50 +90,50 @@ func (s *state) handleTopup(ctx context.Context, b *bot.Bot, update *models.Upda
 	p, err := LoadPortfolio(ctx, s.kv, userID, s.now().UnixMilli())
 	if err != nil {
 		log.Error("trading_load_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not load portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not load portfolio. Try again later.")
 	}
 	p.AddCurrency("VND", amount)
 	p.Meta.Invested += amount
 	if err := SavePortfolio(ctx, s.kv, userID, p); err != nil {
 		log.Error("trading_save_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not save portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not save portfolio. Try again later.")
 	}
-	return chathelper.Reply(ctx, b, chatID,
+	return chathelper.Reply(ctx, b, update.Message,
 		"Topped up "+FormatVND(amount)+".\nBalance: "+FormatVND(p.Currency["VND"]))
 }
 
 func (s *state) handleBuy(ctx context.Context, b *bot.Bot, update *models.Update) error {
-	userID, chatID, ok := senderInfo(update)
+	userID, ok := senderInfo(update)
 	if !ok {
-		return chathelper.Reply(ctx, b, update.Message.Chat.ID,
+		return chathelper.Reply(ctx, b, update.Message,
 			"Cannot identify user — trading only works in private/group chats with a sender.")
 	}
 	args := argsAfterCommand(update.Message.Text)
 	if len(args) < 2 {
-		return chathelper.Reply(ctx, b, chatID, "Usage: /trade_buy <qty> <TICKER>\nExample: /trade_buy 100 TCB")
+		return chathelper.Reply(ctx, b, update.Message, "Usage: /trade_buy <qty> <TICKER>\nExample: /trade_buy 100 TCB")
 	}
 	qty, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil || qty <= 0 {
-		return chathelper.Reply(ctx, b, chatID, "Quantity must be a positive whole number.")
+		return chathelper.Reply(ctx, b, update.Message, "Quantity must be a positive whole number.")
 	}
 
 	resolved, err := ResolveSymbol(ctx, s.kv, s.prices, args[1])
 	if err != nil {
 		if errors.Is(err, ErrUnknownTicker) {
-			return chathelper.Reply(ctx, b, chatID,
+			return chathelper.Reply(ctx, b, update.Message,
 				"Unknown stock ticker \""+strings.ToUpper(args[1])+"\".\n"+s.comingSoonMessage)
 		}
 		log.Error("trading_resolve_symbol", "ticker", args[1], "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not look up that ticker. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not look up that ticker. Try again later.")
 	}
 
 	price, err := s.prices.FetchPrice(ctx, resolved.Symbol)
 	if err != nil {
 		if errors.Is(err, ErrNoPrice) {
-			return chathelper.Reply(ctx, b, chatID, "No price available for "+resolved.Symbol+".")
+			return chathelper.Reply(ctx, b, update.Message, "No price available for "+resolved.Symbol+".")
 		}
 		log.Error("trading_fetch_price", "ticker", resolved.Symbol, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not fetch price. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not fetch price. Try again later.")
 	}
 	cost := float64(qty) * price
 
@@ -138,36 +142,36 @@ func (s *state) handleBuy(ctx context.Context, b *bot.Bot, update *models.Update
 	p, err := LoadPortfolio(ctx, s.kv, userID, s.now().UnixMilli())
 	if err != nil {
 		log.Error("trading_load_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not load portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not load portfolio. Try again later.")
 	}
 	ok, balance := p.DeductCurrency("VND", cost)
 	if !ok {
-		return chathelper.Reply(ctx, b, chatID,
+		return chathelper.Reply(ctx, b, update.Message,
 			"Insufficient VND. Need "+FormatVND(cost)+", have "+FormatVND(balance)+".")
 	}
 	p.AddAsset(resolved.Symbol, qty)
 	if err := SavePortfolio(ctx, s.kv, userID, p); err != nil {
 		log.Error("trading_save_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not save portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not save portfolio. Try again later.")
 	}
-	return chathelper.Reply(ctx, b, chatID,
+	return chathelper.Reply(ctx, b, update.Message,
 		"Bought "+FormatStock(float64(qty))+" "+resolved.Symbol+
 			" @ "+FormatVND(price)+"\nCost: "+FormatVND(cost))
 }
 
 func (s *state) handleSell(ctx context.Context, b *bot.Bot, update *models.Update) error {
-	userID, chatID, ok := senderInfo(update)
+	userID, ok := senderInfo(update)
 	if !ok {
-		return chathelper.Reply(ctx, b, update.Message.Chat.ID,
+		return chathelper.Reply(ctx, b, update.Message,
 			"Cannot identify user — trading only works in private/group chats with a sender.")
 	}
 	args := argsAfterCommand(update.Message.Text)
 	if len(args) < 2 {
-		return chathelper.Reply(ctx, b, chatID, "Usage: /trade_sell <qty> <TICKER>\nExample: /trade_sell 100 TCB")
+		return chathelper.Reply(ctx, b, update.Message, "Usage: /trade_sell <qty> <TICKER>\nExample: /trade_sell 100 TCB")
 	}
 	qty, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil || qty <= 0 {
-		return chathelper.Reply(ctx, b, chatID, "Quantity must be a positive whole number.")
+		return chathelper.Reply(ctx, b, update.Message, "Quantity must be a positive whole number.")
 	}
 
 	// Resolve + fetch price BEFORE taking the per-user lock. Mirrors handleBuy:
@@ -176,19 +180,19 @@ func (s *state) handleSell(ctx context.Context, b *bot.Bot, update *models.Updat
 	resolved, err := ResolveSymbol(ctx, s.kv, s.prices, args[1])
 	if err != nil {
 		if errors.Is(err, ErrUnknownTicker) {
-			return chathelper.Reply(ctx, b, chatID,
+			return chathelper.Reply(ctx, b, update.Message,
 				"Unknown stock ticker \""+strings.ToUpper(args[1])+"\".")
 		}
 		log.Error("trading_resolve_symbol", "ticker", args[1], "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not look up that ticker. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not look up that ticker. Try again later.")
 	}
 	price, err := s.prices.FetchPrice(ctx, resolved.Symbol)
 	if err != nil {
 		if errors.Is(err, ErrNoPrice) {
-			return chathelper.Reply(ctx, b, chatID, "No price available for "+resolved.Symbol+".")
+			return chathelper.Reply(ctx, b, update.Message, "No price available for "+resolved.Symbol+".")
 		}
 		log.Error("trading_fetch_price", "ticker", resolved.Symbol, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not fetch price. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not fetch price. Try again later.")
 	}
 
 	defer s.locks.Acquire(strconv.FormatInt(userID, 10))()
@@ -196,20 +200,20 @@ func (s *state) handleSell(ctx context.Context, b *bot.Bot, update *models.Updat
 	p, err := LoadPortfolio(ctx, s.kv, userID, s.now().UnixMilli())
 	if err != nil {
 		log.Error("trading_load_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not load portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not load portfolio. Try again later.")
 	}
 	ok, held := p.DeductAsset(resolved.Symbol, qty)
 	if !ok {
-		return chathelper.Reply(ctx, b, chatID,
+		return chathelper.Reply(ctx, b, update.Message,
 			"Insufficient "+resolved.Symbol+". You have: "+FormatStock(float64(held)))
 	}
 	revenue := float64(qty) * price
 	p.AddCurrency("VND", revenue)
 	if err := SavePortfolio(ctx, s.kv, userID, p); err != nil {
 		log.Error("trading_save_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not save portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not save portfolio. Try again later.")
 	}
-	return chathelper.Reply(ctx, b, chatID,
+	return chathelper.Reply(ctx, b, update.Message,
 		"Sold "+FormatStock(float64(qty))+" "+resolved.Symbol+
 			" @ "+FormatVND(price)+"\nRevenue: "+FormatVND(revenue))
 }
@@ -218,22 +222,22 @@ func (s *state) handleConvert(ctx context.Context, b *bot.Bot, update *models.Up
 	if update.Message == nil {
 		return nil
 	}
-	return chathelper.Reply(ctx, b, update.Message.Chat.ID,
+	return chathelper.Reply(ctx, b, update.Message,
 		"Currency exchange is not available yet.\n"+s.comingSoonMessage)
 }
 
 // handleStats fetches every held ticker's current price (in parallel) and
 // renders the portfolio. Read-only — no portfolio mutation, so no keylock.
 func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Update) error {
-	userID, chatID, ok := senderInfo(update)
+	userID, ok := senderInfo(update)
 	if !ok {
-		return chathelper.Reply(ctx, b, update.Message.Chat.ID,
+		return chathelper.Reply(ctx, b, update.Message,
 			"Cannot identify user — /trade_stats needs a sender.")
 	}
 	p, err := LoadPortfolio(ctx, s.kv, userID, s.now().UnixMilli())
 	if err != nil {
 		log.Error("trading_load_portfolio", "user", userID, "err", err)
-		return chathelper.Reply(ctx, b, chatID, "Could not load portfolio. Try again later.")
+		return chathelper.Reply(ctx, b, update.Message, "Could not load portfolio. Try again later.")
 	}
 
 	var lines []string
@@ -278,5 +282,5 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	lines = append(lines, "\nTotal value: "+FormatVND(totalValue))
 	lines = append(lines, "Invested: "+FormatVND(p.Meta.Invested))
 	lines = append(lines, "P&L: "+FormatPnL(totalValue, p.Meta.Invested))
-	return chathelper.Reply(ctx, b, chatID, strings.Join(lines, "\n"))
+	return chathelper.Reply(ctx, b, update.Message, strings.Join(lines, "\n"))
 }

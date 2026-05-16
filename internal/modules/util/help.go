@@ -101,6 +101,7 @@ func helpCommand(reg *modules.Registry) modules.Command {
 			text := RenderHelp(reg)
 			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:             update.Message.Chat.ID,
+				MessageThreadID:    update.Message.MessageThreadID,
 				Text:               text,
 				ParseMode:          models.ParseModeHTML,
 				LinkPreviewOptions: &models.LinkPreviewOptions{IsDisabled: bot.True()},

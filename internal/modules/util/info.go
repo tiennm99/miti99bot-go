@@ -37,7 +37,7 @@ func infoCommand() modules.Command {
 				senderID = fmt.Sprintf("%d", msg.From.ID)
 			}
 			text := fmt.Sprintf("chat id: %s\nthread id: %s\nsender id: %s", chatID, threadID, senderID)
-			return chathelper.Reply(ctx, b, msg.Chat.ID, text)
+			return chathelper.Reply(ctx, b, msg, text)
 		},
 	}
 }

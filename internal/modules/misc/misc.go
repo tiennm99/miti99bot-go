@@ -54,7 +54,7 @@ func pingCommand(deps modules.Deps) modules.Command {
 			if err := deps.KV.PutJSON(ctx, lastPingKey, payload); err != nil {
 				log.Error("kv put failed", "module", "misc", "command", "ping", "key", lastPingKey, "err", err)
 			}
-			return chathelper.Reply(ctx, b, update.Message.Chat.ID, "pong")
+			return chathelper.Reply(ctx, b, update.Message, "pong")
 		},
 	}
 }
@@ -78,7 +78,7 @@ func mstatsCommand(deps modules.Deps) modules.Command {
 			case err != nil && !errors.Is(err, storage.ErrNotFound):
 				return fmt.Errorf("misc /mstats: %w", err)
 			}
-			return chathelper.Reply(ctx, b, update.Message.Chat.ID, text)
+			return chathelper.Reply(ctx, b, update.Message, text)
 		},
 	}
 }
@@ -92,7 +92,7 @@ func fortytwoCommand() modules.Command {
 			if update.Message == nil {
 				return nil
 			}
-			return chathelper.Reply(ctx, b, update.Message.Chat.ID, "The answer.")
+			return chathelper.Reply(ctx, b, update.Message, "The answer.")
 		},
 	}
 }

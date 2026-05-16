@@ -78,10 +78,10 @@ func (s *state) handleTwentyq(ctx context.Context, b *bot.Bot, update *models.Up
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	if s.chatter == nil {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, notConfig)
+		return chathelper.Reply(ctx, b, msg, notConfig)
 	}
 	defer s.locks.Acquire(subject)()
 
@@ -99,31 +99,31 @@ func (s *state) handleTwentyq(ctx context.Context, b *bot.Bot, update *models.Up
 
 	if game == nil {
 		if s.limiter != nil && !s.limiter.Allow(subject) {
-			return chathelper.Reply(ctx, b, msg.Chat.ID, "⏳ Slow down — too many requests in a short window.")
+			return chathelper.Reply(ctx, b, msg, "⏳ Slow down — too many requests in a short window.")
 		}
 		fresh, err := s.startFreshGame(ctx)
 		if err != nil {
 			if errors.Is(err, ai.ErrRateLimited) {
-				return chathelper.Reply(ctx, b, msg.Chat.ID, rateLimited)
+				return chathelper.Reply(ctx, b, msg, rateLimited)
 			}
 			log.Warn("twentyq roundstart failed", "err", err)
-			return chathelper.Reply(ctx, b, msg.Chat.ID, upstreamFail)
+			return chathelper.Reply(ctx, b, msg, upstreamFail)
 		}
 		if err := saveGame(ctx, s.kv, subject, fresh); err != nil {
 			return err
 		}
 		if arg == "" {
-			return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, formatIntro(*fresh))
+			return chathelper.ReplyHTML(ctx, b, msg, formatIntro(*fresh))
 		}
 		// Fresh round + immediate question — show intro then process turn.
-		if err := chathelper.ReplyHTML(ctx, b, msg.Chat.ID, formatIntro(*fresh)); err != nil {
+		if err := chathelper.ReplyHTML(ctx, b, msg, formatIntro(*fresh)); err != nil {
 			return err
 		}
 		return s.submitTurn(ctx, b, msg, subject, fresh, arg)
 	}
 
 	if arg == "" {
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, formatBoard(*game))
+		return chathelper.ReplyHTML(ctx, b, msg, formatBoard(*game))
 	}
 	return s.submitTurn(ctx, b, msg, subject, game, arg)
 }
@@ -131,28 +131,28 @@ func (s *state) handleTwentyq(ctx context.Context, b *bot.Bot, update *models.Up
 func (s *state) submitTurn(ctx context.Context, b *bot.Bot, msg *models.Message, subject string, game *GameState, raw string) error {
 	v := validateQuestion(raw)
 	if !v.OK {
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, v.Reason)
+		return chathelper.ReplyHTML(ctx, b, msg, v.Reason)
 	}
 	lower := strings.ToLower(v.Normalized)
 	for _, t := range game.Turns {
 		if strings.ToLower(t.Text) == lower {
-			return chathelper.Reply(ctx, b, msg.Chat.ID,
+			return chathelper.Reply(ctx, b, msg,
 				"🔁 You already asked that exact question — try a new angle.")
 		}
 	}
 
 	if s.limiter != nil && !s.limiter.Allow(subject) {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "⏳ Slow down — too many turns in a short window.")
+		return chathelper.Reply(ctx, b, msg, "⏳ Slow down — too many turns in a short window.")
 	}
 
 	system := buildSystemPrompt(*game)
 	resp, err := s.chatter.Generate(ctx, system, v.Normalized)
 	if err != nil {
 		if errors.Is(err, ai.ErrRateLimited) {
-			return chathelper.Reply(ctx, b, msg.Chat.ID, rateLimited)
+			return chathelper.Reply(ctx, b, msg, rateLimited)
 		}
 		log.Warn("twentyq judge failed", "err", err)
-		return chathelper.Reply(ctx, b, msg.Chat.ID, upstreamFail)
+		return chathelper.Reply(ctx, b, msg, upstreamFail)
 	}
 	payload := parseJSON(resp)
 	if payload == nil {
@@ -180,14 +180,14 @@ func (s *state) submitTurn(ctx context.Context, b *bot.Bot, msg *models.Message,
 		if err := clearGame(ctx, s.kv, subject); err != nil {
 			return err
 		}
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID,
+		return chathelper.ReplyHTML(ctx, b, msg,
 			formatTurnReply(turn, true, game.Target, count))
 	}
 
 	if err := saveGame(ctx, s.kv, subject, game); err != nil {
 		return err
 	}
-	return chathelper.ReplyHTML(ctx, b, msg.Chat.ID,
+	return chathelper.ReplyHTML(ctx, b, msg,
 		formatTurnReply(turn, false, game.Target, len(game.Turns)))
 }
 
@@ -198,7 +198,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 	game, err := loadGame(ctx, s.kv, subject)
@@ -206,7 +206,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 		return err
 	}
 	if game == nil {
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, noRound)
+		return chathelper.ReplyHTML(ctx, b, msg, noRound)
 	}
 	if _, err := recordResult(ctx, s.kv, subject, false, len(game.Turns), chathelper.NowMillis()); err != nil {
 		return err
@@ -214,7 +214,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if err := clearGame(ctx, s.kv, subject); err != nil {
 		return err
 	}
-	return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, formatGiveup(*game))
+	return chathelper.ReplyHTML(ctx, b, msg, formatGiveup(*game))
 }
 
 func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Update) error {
@@ -224,13 +224,13 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	st, err := loadStats(ctx, s.kv, subject)
 	if err != nil {
 		return err
 	}
-	return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, formatStats(*st))
+	return chathelper.ReplyHTML(ctx, b, msg, formatStats(*st))
 }
 
 func truncate(s string, n int) string {

@@ -74,7 +74,7 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 	arg := chathelper.ArgAfterCommand(msg.Text)
@@ -94,17 +94,17 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 		default:
 			header = fmt.Sprintf("Guess %d/%d. Use `/wordle <word>`.", len(g.Guesses), MaxGuesses)
 		}
-		return chathelper.Reply(ctx, b, msg.Chat.ID, header+"\n\n"+renderBoard(g.Guesses))
+		return chathelper.Reply(ctx, b, msg, header+"\n\n"+renderBoard(g.Guesses))
 	}
 
 	if isFinished(g) {
-		return chathelper.Reply(ctx, b, msg.Chat.ID,
+		return chathelper.Reply(ctx, b, msg,
 			fmt.Sprintf("Current round is over. Use /wordle_new to start another. Answer was %s.", strings.ToUpper(g.Target)))
 	}
 
 	v := validateGuess(s.set, arg)
 	if !v.OK {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, rejectMessage(v.Reason))
+		return chathelper.Reply(ctx, b, msg, rejectMessage(v.Reason))
 	}
 
 	results := CompareWords(v.Word, g.Target)
@@ -124,16 +124,16 @@ func (s *state) handleWordle(ctx context.Context, b *bot.Bot, update *models.Upd
 		if err != nil {
 			return err
 		}
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("%s\n\n🎉 Solved in %d/%d! Streak: %d. /wordle_new for another.",
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("%s\n\n🎉 Solved in %d/%d! Streak: %d. /wordle_new for another.",
 			rendered, len(g.Guesses), MaxGuesses, stats.Streak))
 	case len(g.Guesses) >= MaxGuesses:
 		if _, err := recordResult(ctx, s.kv, subject, false, chathelper.NowMillis()); err != nil {
 			return err
 		}
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("%s\n\n❌ Out of guesses. Answer was %s. /wordle_new to retry.",
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("%s\n\n❌ Out of guesses. Answer was %s. /wordle_new to retry.",
 			rendered, strings.ToUpper(g.Target)))
 	default:
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("%s\n\nGuess %d/%d.", rendered, len(g.Guesses), MaxGuesses))
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("%s\n\nGuess %d/%d.", rendered, len(g.Guesses), MaxGuesses))
 	}
 }
 
@@ -146,7 +146,7 @@ func (s *state) handleNew(ctx context.Context, b *bot.Bot, update *models.Update
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 
@@ -166,7 +166,7 @@ func (s *state) handleNew(ctx context.Context, b *bot.Bot, update *models.Update
 	if _, err := s.startFresh(ctx, subject); err != nil {
 		return err
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, prelude+"🆕 New round started. Use `/wordle <word>` to guess.")
+	return chathelper.Reply(ctx, b, msg, prelude+"🆕 New round started. Use `/wordle <word>` to guess.")
 }
 
 // handleGiveup is /wordle_giveup — reveals answer for the current round.
@@ -178,7 +178,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 	g, err := s.getOrInit(ctx, subject)
@@ -186,10 +186,10 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 		return err
 	}
 	if g.Solved {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Already solved — %s.", strings.ToUpper(g.Target)))
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("Already solved — %s.", strings.ToUpper(g.Target)))
 	}
 	if g.Giveup {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Already gave up — %s.", strings.ToUpper(g.Target)))
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("Already gave up — %s.", strings.ToUpper(g.Target)))
 	}
 	g.Giveup = true
 	if err := saveGame(ctx, s.kv, subject, g); err != nil {
@@ -198,7 +198,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if _, err := recordResult(ctx, s.kv, subject, false, chathelper.NowMillis()); err != nil {
 		return err
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("🏳️ Answer was %s. /wordle_new for another.", strings.ToUpper(g.Target)))
+	return chathelper.Reply(ctx, b, msg, fmt.Sprintf("🏳️ Answer was %s. /wordle_new for another.", strings.ToUpper(g.Target)))
 }
 
 // handleStats is /wordle_stats — shows lifetime score for the subject.
@@ -209,7 +209,7 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	stats, err := loadStats(ctx, s.kv, subject)
 	if err != nil {
@@ -219,7 +219,7 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	if msg.Chat.Type == models.ChatTypePrivate {
 		scope = "your"
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf(
+	return chathelper.Reply(ctx, b, msg, fmt.Sprintf(
 		"📊 Wordle %s stats\nPlayed: %d\nWins: %d (%d%%)\nCurrent streak: %d\nBest streak: %d",
 		scope, stats.Played, stats.Wins, chathelper.WinRate(stats.Wins, stats.Played), stats.Streak, stats.BestStreak,
 	))

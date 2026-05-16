@@ -83,14 +83,19 @@ func (s *state) getOrInitGame(ctx context.Context, subject string, maxGuesses in
 
 // trySendSticker sends a sticker, swallowing errors. A bad/expired file_id
 // must never block the text reply that carries the round outcome.
-func trySendSticker(ctx context.Context, b *bot.Bot, chatID int64, pool []string) {
+//
+// Threads MessageThreadID so stickers post in the same forum-supergroup topic
+// as the inbound command (omission posts to General — same bug class as the
+// Reply helper).
+func trySendSticker(ctx context.Context, b *bot.Bot, msg *models.Message, pool []string) {
 	id := pickSticker(pool)
-	if id == "" {
+	if id == "" || msg == nil {
 		return
 	}
 	_, _ = b.SendSticker(ctx, &bot.SendStickerParams{
-		ChatID:  chatID,
-		Sticker: &models.InputFileString{Data: id},
+		ChatID:          msg.Chat.ID,
+		MessageThreadID: msg.MessageThreadID,
+		Sticker:         &models.InputFileString{Data: id},
 	})
 }
 
@@ -102,7 +107,7 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 	arg := chathelper.ArgAfterCommand(msg.Text)
@@ -120,17 +125,17 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		header := fmt.Sprintf("Guess %d/%d. Use <code>/loldle &lt;champion&gt;</code>.",
 			len(game.Guesses), maxGuesses)
 		board := renderBoard(s.rehydrateGuesses(game))
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, header+"\n\n"+board)
+		return chathelper.ReplyHTML(ctx, b, msg, header+"\n\n"+board)
 	}
 
 	guess := findChampion(s.champions, arg)
 	if guess == nil {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Champion not found: %q.", arg))
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("Champion not found: %q.", arg))
 	}
 
 	for _, prior := range game.Guesses {
 		if prior == guess.ChampionName {
-			return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+			return chathelper.ReplyHTML(ctx, b, msg, fmt.Sprintf(
 				"🔁 <b>%s</b> was already guessed this round — try another champion.",
 				html.EscapeString(guess.ChampionName)))
 		}
@@ -143,7 +148,7 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		if err := clearGame(ctx, s.kv, subject); err != nil {
 			return err
 		}
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID,
+		return chathelper.ReplyHTML(ctx, b, msg,
 			"Champion data was updated since this round started. "+newRoundHint)
 	}
 
@@ -168,9 +173,9 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		if err := clearGame(ctx, s.kv, subject); err != nil {
 			return err
 		}
-		trySendSticker(ctx, b, msg.Chat.ID, winStickers)
+		trySendSticker(ctx, b, msg, winStickers)
 		flavor := attemptFlavor(len(game.Guesses), maxGuesses)
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+		return chathelper.ReplyHTML(ctx, b, msg, fmt.Sprintf(
 			"%s\n\n🎉 %s %s\n⏱ %s · 🔥 Streak: %d (%d/%d)\n%s",
 			rendered, flavor, champ, elapsed, st.Streak, len(game.Guesses), maxGuesses, newRoundHint))
 
@@ -181,15 +186,15 @@ func (s *state) handleLoldle(ctx context.Context, b *bot.Bot, update *models.Upd
 		if err := clearGame(ctx, s.kv, subject); err != nil {
 			return err
 		}
-		trySendSticker(ctx, b, msg.Chat.ID, loseStickers)
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+		trySendSticker(ctx, b, msg, loseStickers)
+		return chathelper.ReplyHTML(ctx, b, msg, fmt.Sprintf(
 			"%s\n\n❌ Out of guesses. Answer was %s.\n%s", rendered, champ, newRoundHint))
 
 	default:
 		if err := saveGame(ctx, s.kv, subject, game); err != nil {
 			return err
 		}
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, fmt.Sprintf(
+		return chathelper.ReplyHTML(ctx, b, msg, fmt.Sprintf(
 			"%s\n\nGuess %d/%d.", rendered, len(game.Guesses), maxGuesses))
 	}
 }
@@ -202,7 +207,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	defer s.locks.Acquire(subject)()
 
@@ -211,7 +216,7 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 		return err
 	}
 	if existing == nil {
-		return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, "No active round. "+newRoundHint)
+		return chathelper.ReplyHTML(ctx, b, msg, "No active round. "+newRoundHint)
 	}
 	if _, err := recordResult(ctx, s.kv, subject, false); err != nil {
 		return err
@@ -220,12 +225,12 @@ func (s *state) handleGiveup(ctx context.Context, b *bot.Bot, update *models.Upd
 	if err := clearGame(ctx, s.kv, subject); err != nil {
 		return err
 	}
-	trySendSticker(ctx, b, msg.Chat.ID, giveupStickers)
+	trySendSticker(ctx, b, msg, giveupStickers)
 	answer := existing.Target
 	if target != nil {
 		answer = target.ChampionName
 	}
-	return chathelper.ReplyHTML(ctx, b, msg.Chat.ID,
+	return chathelper.ReplyHTML(ctx, b, msg,
 		fmt.Sprintf("🏳️ Answer was %s.\n%s", html.EscapeString(answer), newRoundHint))
 }
 
@@ -237,7 +242,7 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	st, err := loadStats(ctx, s.kv, subject)
 	if err != nil {
@@ -247,7 +252,7 @@ func (s *state) handleStats(ctx context.Context, b *bot.Bot, update *models.Upda
 	if msg.Chat.Type == models.ChatTypePrivate {
 		scope = "your"
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf(
+	return chathelper.Reply(ctx, b, msg, fmt.Sprintf(
 		"📊 Loldle %s stats\nPlayed: %d\nWins: %d (%d%%)\nCurrent streak: %d\nBest streak: %d",
 		scope, st.Played, st.Wins, chathelper.WinRate(st.Wins, st.Played), st.Streak, st.BestStreak))
 }
@@ -261,15 +266,15 @@ func (s *state) handleSetMax(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	subject := chathelper.SubjectFor(msg)
 	if subject == "" {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Cannot identify chat.")
+		return chathelper.Reply(ctx, b, msg, "Cannot identify chat.")
 	}
 	arg := chathelper.ArgAfterCommand(msg.Text)
 	n, err := strconv.Atoi(arg)
 	if err != nil || n < 1 || n > MaxGuessesCap {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("Usage: /loldle_setmax <1-%d>", MaxGuessesCap))
+		return chathelper.Reply(ctx, b, msg, fmt.Sprintf("Usage: /loldle_setmax <1-%d>", MaxGuessesCap))
 	}
 	if err := setMaxGuesses(ctx, s.kv, subject, n); err != nil {
 		return err
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, fmt.Sprintf("✅ Loldle max guesses set to %d (applies to the next round).", n))
+	return chathelper.Reply(ctx, b, msg, fmt.Sprintf("✅ Loldle max guesses set to %d (applies to the next round).", n))
 }

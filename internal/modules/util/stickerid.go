@@ -32,7 +32,7 @@ func stickerIDCommand() modules.Command {
 
 			sticker := stickerFrom(msg)
 			if sticker == nil {
-				return chathelper.Reply(ctx, b, msg.Chat.ID, stickerIDUsage)
+				return chathelper.Reply(ctx, b, msg, stickerIDUsage)
 			}
 
 			setName := sticker.SetName
@@ -52,7 +52,7 @@ func stickerIDCommand() modules.Command {
 			fmt.Fprintf(&sb, "set: %s · emoji: %s",
 				html.EscapeString(setName), html.EscapeString(emoji))
 
-			return chathelper.ReplyHTML(ctx, b, msg.Chat.ID, sb.String())
+			return chathelper.ReplyHTML(ctx, b, msg, sb.String())
 		},
 	}
 }

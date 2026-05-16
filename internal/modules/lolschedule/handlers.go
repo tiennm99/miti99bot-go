@@ -38,9 +38,9 @@ func (s *state) handleSchedule(ctx context.Context, b *bot.Bot, update *models.U
 	arg := chathelper.ArgAfterCommand(msg.Text)
 	parsed := ParseScheduleDate(arg, s.now())
 	if !parsed.OK {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, parsed.Error)
+		return chathelper.Reply(ctx, b, msg, parsed.Error)
 	}
-	return s.replyForRange(ctx, b, msg.Chat.ID, parsed.Date, addDays(parsed.Date, 1), false)
+	return s.replyForRange(ctx, b, msg, parsed.Date, addDays(parsed.Date, 1), false)
 }
 
 // handleToday is /lolschedule_today — today's matches.
@@ -50,7 +50,7 @@ func (s *state) handleToday(ctx context.Context, b *bot.Bot, update *models.Upda
 		return nil
 	}
 	from := ictDayStartOf(s.now())
-	return s.replyForRange(ctx, b, msg.Chat.ID, from, addDays(from, 1), false)
+	return s.replyForRange(ctx, b, msg, from, addDays(from, 1), false)
 }
 
 // handleWeek is /lolschedule_week — next 7 ICT days.
@@ -60,12 +60,12 @@ func (s *state) handleWeek(ctx context.Context, b *bot.Bot, update *models.Updat
 		return nil
 	}
 	from := ictDayStartOf(s.now())
-	return s.replyForRange(ctx, b, msg.Chat.ID, from, addDays(from, 7), true)
+	return s.replyForRange(ctx, b, msg, from, addDays(from, 7), true)
 }
 
 // replyForRange fetches + filters + renders a date window. week=true uses
 // RenderWeek; false uses RenderToday.
-func (s *state) replyForRange(ctx context.Context, b *bot.Bot, chatID int64, from, to time.Time, week bool) error {
+func (s *state) replyForRange(ctx context.Context, b *bot.Bot, msg *models.Message, from, to time.Time, week bool) error {
 	events, err := s.client.GetEventsCached(ctx, s.kv, from, to)
 	if err != nil {
 		log.Error("lolschedule_fetch_fail", "err", err, "from", from, "to", to)
@@ -73,7 +73,7 @@ func (s *state) replyForRange(ctx context.Context, b *bot.Bot, chatID int64, fro
 		if week {
 			hint = "Could not fetch this week's matches. Try again later."
 		}
-		return chathelper.Reply(ctx, b, chatID, hint)
+		return chathelper.Reply(ctx, b, msg, hint)
 	}
 	filtered := FilterMajor(events)
 	var text string
@@ -82,7 +82,7 @@ func (s *state) replyForRange(ctx context.Context, b *bot.Bot, chatID int64, fro
 	} else {
 		text = RenderToday(filtered, from)
 	}
-	return chathelper.ReplyHTML(ctx, b, chatID, text)
+	return chathelper.ReplyHTML(ctx, b, msg, text)
 }
 
 // handleSubscribe is /lolschedule_subscribe — opt the chat into the daily
@@ -97,10 +97,10 @@ func (s *state) handleSubscribe(ctx context.Context, b *bot.Bot, update *models.
 		return err
 	}
 	if added {
-		return chathelper.Reply(ctx, b, msg.Chat.ID,
+		return chathelper.Reply(ctx, b, msg,
 			"✅ Subscribed. You'll get today's LoL schedule at 08:00 ICT (push activates with the cron rollout).")
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, "Already subscribed.")
+	return chathelper.Reply(ctx, b, msg, "Already subscribed.")
 }
 
 // handleUnsubscribe is /lolschedule_unsubscribe — opt out.
@@ -114,7 +114,7 @@ func (s *state) handleUnsubscribe(ctx context.Context, b *bot.Bot, update *model
 		return err
 	}
 	if removed {
-		return chathelper.Reply(ctx, b, msg.Chat.ID, "Unsubscribed.")
+		return chathelper.Reply(ctx, b, msg, "Unsubscribed.")
 	}
-	return chathelper.Reply(ctx, b, msg.Chat.ID, "You weren't subscribed.")
+	return chathelper.Reply(ctx, b, msg, "You weren't subscribed.")
 }
