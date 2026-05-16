@@ -36,22 +36,23 @@ func (r *Report) AddSkippedPolicy(reason string)   { r.SkippedPolicy[reason]++ }
 func (r *Report) AddFailed(prefix string)          { r.Failed[prefix]++ }
 
 // Format writes a human-readable summary. Stable ordering (alphabetical) so
-// rerun diffs stay clean.
+// rerun diffs stay clean. Write errors are ignored — callers pass os.Stdout
+// or *bytes.Buffer, where short writes are not actionable.
 func (r *Report) Format(w io.Writer) {
-	fmt.Fprintln(w, "Migration report")
-	fmt.Fprintln(w, "================")
+	_, _ = fmt.Fprintln(w, "Migration report")
+	_, _ = fmt.Fprintln(w, "================")
 	writeSection(w, "Imported", r.Imported)
 	writeSection(w, "Skipped (already present)", r.SkippedExisting)
 	writeSection(w, "Skipped (policy)", r.SkippedPolicy)
 	writeSection(w, "Failed", r.Failed)
-	fmt.Fprintf(w, "TOTAL imported=%d skipped_existing=%d skipped_policy=%d failed=%d\n",
+	_, _ = fmt.Fprintf(w, "TOTAL imported=%d skipped_existing=%d skipped_policy=%d failed=%d\n",
 		sum(r.Imported), sum(r.SkippedExisting), sum(r.SkippedPolicy), sum(r.Failed))
 }
 
 func writeSection(w io.Writer, label string, m map[string]int) {
-	fmt.Fprintf(w, "\n%s:\n", label)
+	_, _ = fmt.Fprintf(w, "\n%s:\n", label)
 	if len(m) == 0 {
-		fmt.Fprintln(w, "  (none)")
+		_, _ = fmt.Fprintln(w, "  (none)")
 		return
 	}
 	keys := make([]string, 0, len(m))
@@ -60,7 +61,7 @@ func writeSection(w io.Writer, label string, m map[string]int) {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		fmt.Fprintf(w, "  %-30s %d\n", k, m[k])
+		_, _ = fmt.Fprintf(w, "  %-30s %d\n", k, m[k])
 	}
 }
 
