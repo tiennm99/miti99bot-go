@@ -64,11 +64,11 @@ func (s *DynamoDBKVStore) Get(ctx context.Context, key string) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("dynamodb get %s/%s: missing %q attribute", s.moduleName, key, dynamoValueAttr)
 	}
-	bin, ok := rawAttr.(*types.AttributeValueMemberB)
+	str, ok := rawAttr.(*types.AttributeValueMemberS)
 	if !ok {
 		return nil, fmt.Errorf("dynamodb get %s/%s: unexpected attribute type %T", s.moduleName, key, rawAttr)
 	}
-	return bin.Value, nil
+	return []byte(str.Value), nil
 }
 
 // GetJSON decodes the value at key into dst.
@@ -83,26 +83,20 @@ func (s *DynamoDBKVStore) GetJSON(ctx context.Context, key string, dst any) erro
 	return nil
 }
 
-// Put writes raw bytes at key, creating or overwriting.
+// Put writes raw bytes at key, creating or overwriting. The value attribute
+// is stored as a DynamoDB String so it is human-readable in the AWS console.
+// Every current caller writes JSON, which is UTF-8 safe; non-UTF-8 callers
+// must encode upstream (e.g. base64).
 func (s *DynamoDBKVStore) Put(ctx context.Context, key string, val []byte) error {
 	if err := validateKey(key); err != nil {
 		return err
-	}
-	// DynamoDB rejects empty Binary values. Store a single zero byte sentinel
-	// transparently — Firestore allows zero-length []byte and callers may
-	// rely on that. The Get path treats both as []byte; downstream JSON
-	// callers will see []byte{0} where they put []byte{}, but no current
-	// caller relies on storing literal empty bytes (they use PutJSON, which
-	// always emits at least "null" = 4 bytes).
-	if len(val) == 0 {
-		val = []byte{0}
 	}
 	_, err := s.client.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(s.table),
 		Item: map[string]types.AttributeValue{
 			dynamoPKAttr:        &types.AttributeValueMemberS{Value: s.moduleName},
 			dynamoSKAttr:        &types.AttributeValueMemberS{Value: key},
-			dynamoValueAttr:     &types.AttributeValueMemberB{Value: val},
+			dynamoValueAttr:     &types.AttributeValueMemberS{Value: string(val)},
 			dynamoUpdatedAtAttr: &types.AttributeValueMemberN{Value: strconv.FormatInt(time.Now().UTC().UnixNano(), 10)},
 		},
 	})
@@ -181,4 +175,3 @@ func (s *DynamoDBKVStore) List(ctx context.Context, prefix string) ([]string, er
 	}
 	return keys, nil
 }
-
