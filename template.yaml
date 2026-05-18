@@ -154,11 +154,24 @@ Resources:
 
   # --- Cron -----------------------------------------------------------------
   #
-  # Why EventBridge Rule + ApiDestination + Connection (not Scheduler):
-  # CloudFormation's AWS::Scheduler::Schedule Target schema has no property
-  # for HTTPS universal-target invocation (URL/method/headers). The legacy
-  # EventBridge Rule path does — via ApiDestination. Pure CFN, single-invoke
-  # per day, free tier covered.
+  # Why EventBridge Scheduler + direct Lambda invoke with a synthetic
+  # Function-URL-v2 event in Input:
+  #
+  # 1. CloudFormation's AWS::Scheduler::Schedule has no schema slot for HTTPS
+  #    universal-target invocation, so we can't have Scheduler POST to the
+  #    Function URL the usual way.
+  # 2. The legacy AWS::Events::Rule + ApiDestination path works but bills
+  #    $0.20 per million ApiDestination invocations (no free tier).
+  # 3. Scheduler → Lambda direct-invoke is fully free-tier (14M/mo). Lambda
+  #    Web Adapter normally expects an HTTP-shaped event; we synthesise one
+  #    in Target.Input so LWA proxies it to the local Go server as if it
+  #    came from the Function URL. The /cron/{name} handler is unchanged.
+  #
+  # Trade-off accepted: the X-Cron-Token value is embedded plain in the
+  # schedule's Input and visible to anyone with scheduler:GetSchedule on
+  # this schedule. Mitigation: CronSharedSecret remains a NoEcho CFN
+  # parameter (out of template source + stack events), and rotation =
+  # SSM update + redeploy (same workflow as before).
 
   CronDLQ:
     Type: AWS::SQS::Queue
@@ -166,75 +179,60 @@ Resources:
       QueueName: !Sub "${AWS::StackName}-cron-dlq"
       MessageRetentionPeriod: 1209600 # 14 days
 
-  # Connection holds the auth credential. EventBridge persists ApiKeyValue in a
-  # service-linked secret in this account (fees absorbed by AWS per docs). The
-  # header name + value are presented on every ApiDestination invocation.
-  CronConnection:
-    Type: AWS::Events::Connection
-    Properties:
-      Name: !Sub "${AWS::StackName}-cron"
-      Description: Shared cron auth — presents X-Cron-Token on every /cron/* call
-      AuthorizationType: API_KEY
-      AuthParameters:
-        ApiKeyAuthParameters:
-          ApiKeyName: X-Cron-Token
-          ApiKeyValue: !Ref CronSharedSecret
-
-  # ApiDestination is the concrete endpoint EventBridge POSTs to. One per cron
-  # route — paths are not parameterised, so add another resource if/when a
-  # second cron handler ships. Keeping ${BotFunctionUrl.FunctionUrl} trailing
-  # slash + bare relative path gives a clean single-slash join.
-  LolscheduleDailyPushApiDestination:
-    Type: AWS::Events::ApiDestination
-    Properties:
-      Name: !Sub "${AWS::StackName}-lolschedule-daily-push"
-      ConnectionArn: !GetAtt CronConnection.Arn
-      HttpMethod: POST
-      InvocationEndpoint: !Sub "${BotFunctionUrl.FunctionUrl}cron/lolschedule_daily_push"
-
-  # Role EventBridge Rule assumes to invoke the ApiDestination and write to
-  # the DLQ. Locked to this destination's ArnForPolicy (the IAM-resource form,
-  # not the ARN form).
-  EventBridgeInvokeRole:
+  # Role Scheduler assumes to invoke the Lambda and write to the DLQ.
+  # lambda:InvokeFunction is the action for direct invoke (vs InvokeFunctionUrl
+  # which is HTTPS-only and Scheduler can't use via CFN anyway).
+  SchedulerExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal: { Service: events.amazonaws.com }
+            Principal: { Service: scheduler.amazonaws.com }
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: cron-invoke-apidestination
+        - PolicyName: cron-invoke-lambda
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action: events:InvokeApiDestination
-                Resource: !GetAtt LolscheduleDailyPushApiDestination.ArnForPolicy
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt BotFunction.Arn
               - Effect: Allow
                 Action: sqs:SendMessage
                 Resource: !GetAtt CronDLQ.Arn
 
-  # The schedule itself. cron(0 1 * * ? *) is 01:00 UTC daily = 08:00 ICT,
-  # matching the dailyPushSchedule constant in internal/modules/lolschedule/cron.go.
-  LolscheduleDailyPushRule:
-    Type: AWS::Events::Rule
+  # cron(0 1 * * ? *) is 01:00 UTC = 08:00 ICT — matches dailyPushSchedule
+  # in internal/modules/lolschedule/cron.go.
+  #
+  # Input is a minimal Lambda Function URL v2 event payload. LWA detects this
+  # shape via requestContext.http and proxies it to the local :8080 server
+  # exactly as if the Function URL had been hit over HTTPS. The Go router
+  # reads X-Cron-Token from headers (case-insensitive) and routes by rawPath.
+  #
+  # $default and $context literals are not !Sub interpolation targets (no
+  # matching logical ID), so they pass through verbatim. Only ${CronSharedSecret}
+  # is interpolated.
+  LolscheduleDailyPushSchedule:
+    Type: AWS::Scheduler::Schedule
     Properties:
       Name: !Sub "${AWS::StackName}-lolschedule-daily-push"
       Description: Fires lolschedule daily-push handler at 01:00 UTC (08:00 ICT)
       ScheduleExpression: "cron(0 1 * * ? *)"
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: OFF }
       State: ENABLED
-      Targets:
-        - Id: lolschedule-daily-push
-          Arn: !GetAtt LolscheduleDailyPushApiDestination.Arn
-          RoleArn: !GetAtt EventBridgeInvokeRole.Arn
-          Input: "{}"
-          RetryPolicy:
-            MaximumRetryAttempts: 2
-            MaximumEventAgeInSeconds: 600
-          DeadLetterConfig:
-            Arn: !GetAtt CronDLQ.Arn
+      Target:
+        Arn: !GetAtt BotFunction.Arn
+        RoleArn: !GetAtt SchedulerExecutionRole.Arn
+        RetryPolicy:
+          MaximumRetryAttempts: 2
+          MaximumEventAgeInSeconds: 600
+        DeadLetterConfig:
+          Arn: !GetAtt CronDLQ.Arn
+        Input: !Sub |
+          {"version":"2.0","routeKey":"$default","rawPath":"/cron/lolschedule_daily_push","rawQueryString":"","headers":{"x-cron-token":"${CronSharedSecret}","content-type":"application/json","user-agent":"aws-scheduler"},"requestContext":{"http":{"method":"POST","path":"/cron/lolschedule_daily_push","protocol":"HTTP/1.1","sourceIp":"127.0.0.1","userAgent":"aws-scheduler"},"requestId":"scheduler-invoke","stage":"$default","time":"00:00:00","timeEpoch":0,"routeKey":"$default"},"body":"","isBase64Encoded":false}
 
   # --- Cost guard -----------------------------------------------------------
 
