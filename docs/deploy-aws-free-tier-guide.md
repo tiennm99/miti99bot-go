@@ -8,6 +8,34 @@ Related docs:
 
 ---
 
+## Project Standards (Non-Negotiables)
+
+### Standard 1: Free Tier Is a Hard Requirement
+
+Any AWS line item that incurs a cost is disqualified, even if monthly usage rounds the bill to $0.00. The principle: **no per-invocation or per-request charges**, period. Free-tier qualification is evaluated per service (not aggregate).
+
+**Disqualified resources:** EventBridge ApiDestination invocations ($0.20/M, no free tier).
+
+**Free-tier-covered resources:** Lambda (1M req + 400k GB-s/mo), DynamoDB on-demand (2.5M read + 1M write units/mo), EventBridge Scheduler (14M invocations/mo), SQS (1M req/mo), CloudWatch Logs (5 GB ingest/mo), CloudFormation, IAM, Budgets, SSM Parameter Store Standard tier.
+
+When evaluating new AWS resources, explicitly verify per-service free-tier coverage in the AWS pricing docs. The `MonthlyBudget` resource (see below) is a safety net, but design must not depend on it. If you hit the $1 threshold, something violated this standard.
+
+### Standard 2: Security Trade-Offs Accepted
+
+Non-negotiable security boundary: AWS resources must not be publicly reachable except via the designed surface — Lambda Function URL serving `/webhook` (Telegram) and `/cron/{name}` (EventBridge Scheduler). Everything else is private or IAM-gated.
+
+Trade-offs explicitly accepted in this project (do NOT flag as "harden this" unless they breach the boundary above):
+- Secrets in CloudWatch Logs / Lambda environment (visible to anyone with logs:GetLogEvents — IAM gates that).
+- Secrets embedded in EventBridge Scheduler Target.Input (visible to anyone with scheduler:GetSchedule — IAM gates that).
+- NoEcho CloudFormation parameters instead of Secrets Manager (simplifies deployment, avoids storage cost).
+- SSM SecureString fetched at Lambda cold start instead of Secrets Manager with rotation (faster, no API call overhead, acceptable risk given Lambda is not a long-lived server).
+
+Rationale: in this project, **free-tier compliance outweighs secret-storage maturity**. Architectural change (Secrets Manager, rotation, KMS key rotation) would either cost money or require additional infrastructure to stay free-tier. Rejected in favor of free tier: EventBridge Connection's service-linked Secrets Manager secret (would cost).
+
+**Red flags that should trigger review:** Any change that (a) makes a non-Function-URL AWS resource publicly reachable, (b) changes Function URL's AuthType from NONE (mitigated by app-level token check), (c) adds a second public-facing Lambda endpoint, (d) ships `cronDisabled=true` due to empty CronSharedSecret.
+
+---
+
 ## What you get (all free-tier)
 
 | Resource | Free quota | This bot's usage |
