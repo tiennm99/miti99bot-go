@@ -221,7 +221,7 @@ Resources:
       Description: Fires lolschedule daily-push handler at 01:00 UTC (08:00 ICT)
       ScheduleExpression: "cron(0 1 * * ? *)"
       ScheduleExpressionTimezone: UTC
-      FlexibleTimeWindow: { Mode: OFF }
+      FlexibleTimeWindow: { Mode: "OFF" }  # quoted: bare OFF → YAML 1.1 boolean false → EarlyValidation rejects
       State: ENABLED
       Target:
         Arn: !GetAtt BotFunction.Arn
