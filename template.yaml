@@ -40,6 +40,19 @@ Parameters:
     Default: ""
     Description: Email for $1 budget alert. Leave empty to skip the budget resource.
 
+  # CFN does not allow {{resolve:ssm-secure:...}} inside
+  # AWS::Scheduler::Schedule HttpInvokeArgs.HeaderParameters (documented
+  # CloudFormation limitation — secure-string dynamic refs have a fixed
+  # property allowlist that excludes Scheduler header parameters). CI fetches
+  # /miti99bot/${StackEnv}/cron-shared-secret from SSM at deploy time and
+  # passes it here via --parameter-overrides. NoEcho masks the value in the
+  # CloudFormation console.
+  CronSharedSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Shared secret EventBridge Scheduler attaches as the X-Cron-Token header. Sourced from SSM by CI.
+
 Conditions:
   HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
 
@@ -199,7 +212,7 @@ Resources:
           EndpointUrl: !Sub "${BotFunctionUrl.FunctionUrl}cron/lolschedule_daily_push"
           HttpMethod: POST
           HeaderParameters:
-            X-Cron-Token: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/cron-shared-secret}}"
+            X-Cron-Token: !Ref CronSharedSecret
 
   # --- Cost guard -----------------------------------------------------------
 
