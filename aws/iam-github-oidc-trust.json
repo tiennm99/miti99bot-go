@@ -13,9 +13,7 @@
         },
         "StringLike": {
           "token.actions.githubusercontent.com:sub": [
-            "repo:tiennm99/miti99bot:ref:refs/heads/main",
-            "repo:tiennm99/miti99bot:ref:refs/heads/dev",
-            "repo:tiennm99/miti99bot:pull_request"
+            "repo:tiennm99/miti99bot:ref:refs/heads/main"
           ]
         }
       }
