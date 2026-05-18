@@ -1,0 +1,236 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Budgets",
+      "Effect": "Allow",
+      "Action": [
+        "budgets:CreateBudget",
+        "budgets:CreateNotification",
+        "budgets:CreateSubscriber",
+        "budgets:DeleteBudget",
+        "budgets:DeleteNotification",
+        "budgets:DeleteSubscriber",
+        "budgets:DescribeBudget",
+        "budgets:DescribeNotificationsForBudget",
+        "budgets:ModifyBudget"
+      ],
+      "Resource": "arn:aws:budgets::225603493174:budget/miti99bot*"
+    },
+    {
+      "Sid": "CloudFormation",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CancelUpdateStack",
+        "cloudformation:ContinueUpdateRollback",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:CreateStack",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStacks",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:ListChangeSets",
+        "cloudformation:ListStackResources",
+        "cloudformation:RollbackStack",
+        "cloudformation:TagResource",
+        "cloudformation:UntagResource",
+        "cloudformation:UpdateStack"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:ap-southeast-1:225603493174:stack/miti99bot*/*",
+        "arn:aws:cloudformation:ap-southeast-1:225603493174:changeSet/*/miti99bot*/*"
+      ]
+    },
+    {
+      "Sid": "CloudFormationGlobalRead",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:ListStacks",
+        "cloudformation:ValidateTemplate"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DynamoDB",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DescribeContinuousBackups",
+        "dynamodb:DescribeTable",
+        "dynamodb:ListTables",
+        "dynamodb:ListTagsOfResource",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource",
+        "dynamodb:UpdateTable"
+      ],
+      "Resource": "arn:aws:dynamodb:ap-southeast-1:225603493174:table/miti99bot*"
+    },
+    {
+      "Sid": "EventBridgeScheduler",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:DeleteSchedule",
+        "scheduler:GetSchedule",
+        "scheduler:ListSchedules",
+        "scheduler:ListTagsForResource",
+        "scheduler:TagResource",
+        "scheduler:UntagResource",
+        "scheduler:UpdateSchedule"
+      ],
+      "Resource": "arn:aws:scheduler:ap-southeast-1:225603493174:schedule/*/miti99bot*"
+    },
+    {
+      "Sid": "IAMRolesScoped",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:DeleteRolePolicy",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListRolePolicies",
+        "iam:ListRoleTags",
+        "iam:ListRoles",
+        "iam:PutRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::225603493174:role/miti99bot*"
+    },
+    {
+      "Sid": "IAMPassRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::225603493174:role/miti99bot*",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "iam:PassedToService": [
+            "lambda.amazonaws.com",
+            "scheduler.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "Lambda",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:AddPermission",
+        "lambda:CreateFunction",
+        "lambda:CreateFunctionUrlConfig",
+        "lambda:DeleteFunction",
+        "lambda:DeleteFunctionUrlConfig",
+        "lambda:GetFunction",
+        "lambda:GetFunctionCodeSigningConfig",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetFunctionUrlConfig",
+        "lambda:GetPolicy",
+        "lambda:ListTags",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
+        "lambda:RemovePermission",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:UpdateFunctionUrlConfig"
+      ],
+      "Resource": "arn:aws:lambda:ap-southeast-1:225603493174:function:miti99bot*"
+    },
+    {
+      "Sid": "LambdaLayerRead",
+      "Effect": "Allow",
+      "Action": "lambda:GetLayerVersion",
+      "Resource": "arn:aws:lambda:ap-southeast-1:753240598075:layer:LambdaAdapterLayerArm64:*"
+    },
+    {
+      "Sid": "Logs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:DeleteMetricFilter",
+        "logs:DeleteRetentionPolicy",
+        "logs:DescribeLogGroups",
+        "logs:DescribeMetricFilters",
+        "logs:ListTagsForResource",
+        "logs:PutMetricFilter",
+        "logs:PutRetentionPolicy",
+        "logs:TagResource",
+        "logs:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:logs:ap-southeast-1:225603493174:log-group:/aws/lambda/miti99bot*",
+        "arn:aws:logs:ap-southeast-1:225603493174:log-group:/aws/lambda/miti99bot*:*"
+      ]
+    },
+    {
+      "Sid": "S3SamArtifacts",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteObject",
+        "s3:GetBucketLocation",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketVersioning",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketVersioning",
+        "s3:PutEncryptionConfiguration",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::aws-sam-cli-managed-default-*",
+        "arn:aws:s3:::aws-sam-cli-managed-default-*/*"
+      ]
+    },
+    {
+      "Sid": "S3GlobalList",
+      "Effect": "Allow",
+      "Action": "s3:ListAllMyBuckets",
+      "Resource": "*"
+    },
+    {
+      "Sid": "SQS",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:CreateQueue",
+        "sqs:DeleteQueue",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ListQueueTags",
+        "sqs:ListQueues",
+        "sqs:SetQueueAttributes",
+        "sqs:TagQueue",
+        "sqs:UntagQueue"
+      ],
+      "Resource": "arn:aws:sqs:ap-southeast-1:225603493174:miti99bot*"
+    },
+    {
+      "Sid": "SSMRead",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": "arn:aws:ssm:ap-southeast-1:225603493174:parameter/miti99bot/*/*"
+    },
+    {
+      "Sid": "STS",
+      "Effect": "Allow",
+      "Action": "sts:GetCallerIdentity",
+      "Resource": "*"
+    }
+  ]
+}
