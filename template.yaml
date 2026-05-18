@@ -174,8 +174,32 @@ Resources:
                 Action: sqs:SendMessage
                 Resource: !GetAtt CronDLQ.Arn
 
-  # Concrete AWS::Scheduler::Schedule resources are added per cron handler;
-  # the role + DLQ above are provisioned once and reused across all schedules.
+  LolscheduleDailyPushSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !Sub "${AWS::StackName}-lolschedule-daily-push"
+      ScheduleExpression: "cron(0 1 * * ? *)" # 01:00 UTC = 08:00 ICT
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: OFF }
+      State: ENABLED
+      Target:
+        # HTTPS universal target — preserves the /cron/{name} route inside the
+        # Lambda. IAM (lambda:InvokeFunctionUrl) is already granted to
+        # scheduler.amazonaws.com on SchedulerExecutionRole above.
+        Arn: arn:aws:scheduler:::http-invoke
+        RoleArn: !GetAtt SchedulerExecutionRole.Arn
+        Input: "{}"
+        RetryPolicy:
+          MaximumRetryAttempts: 2
+          MaximumEventAgeInSeconds: 600
+        DeadLetterConfig:
+          Arn: !GetAtt CronDLQ.Arn
+        HttpInvokeArgs:
+          # FunctionUrl ends with '/'; path starts without one → clean single-slash join.
+          EndpointUrl: !Sub "${BotFunctionUrl.FunctionUrl}cron/lolschedule_daily_push"
+          HttpMethod: POST
+          HeaderParameters:
+            X-Cron-Token: !Sub "{{resolve:ssm-secure:/miti99bot/${StackEnv}/cron-shared-secret}}"
 
   # --- Cost guard -----------------------------------------------------------
 
