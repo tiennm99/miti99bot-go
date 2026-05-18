@@ -43,23 +43,17 @@ jobs:
       - name: SAM deploy
         env:
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
-          STACK_ENV: prod
         run: |
-          set -euo pipefail
-          # EventBridge Scheduler can't resolve {{resolve:ssm-secure}} in
-          # HttpInvokeArgs.HeaderParameters; fetch and pass as a NoEcho param.
-          CRON_SECRET=$(aws ssm get-parameter \
-            --name "/miti99bot/${STACK_ENV}/cron-shared-secret" \
-            --with-decryption --query Parameter.Value --output text)
-          echo "::add-mask::$CRON_SECRET"
-          OVERRIDES="CronSharedSecret=$CRON_SECRET"
           if [ -n "$ALERT_EMAIL" ]; then
-            OVERRIDES="$OVERRIDES AlertEmail=$ALERT_EMAIL"
+            sam deploy --template-file template.yaml \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset \
+              --parameter-overrides "AlertEmail=$ALERT_EMAIL"
+          else
+            sam deploy --template-file template.yaml \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset
           fi
-          sam deploy --template-file template.yaml \
-            --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides "$OVERRIDES"
 
       - name: Smoke test (Function URL responds)
         run: |

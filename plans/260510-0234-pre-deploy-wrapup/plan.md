@@ -32,7 +32,7 @@ From the punch-list:
 | 02 | [Cold-start metric filter](phase-02-metric-filter.md) | done | 30m | `AWS::Logs::MetricFilter` for `Init Duration` in `template.yaml` |
 | 03 | [lolschedule daily-push cron](phase-03-lolschedule-cron.md) | done | 3h | `Crons()` registered; Deps exposes bot for fan-out; daily push at 08:00 ICT |
 | 04 | [Trading module port](phase-04-trading-module.md) | done (scope-trimmed: no daily refresh cron, no leaderboard — neither in upstream) | 4h | VN-stocks paper trading: topup/buy/sell/stats/convert; KBS price source |
-| 05 | [Wire EventBridge schedules](phase-05-eventbridge-schedules.md) | pending | 1h | `AWS::Scheduler::Schedule` HTTPS-invoke for `lolschedule_daily_push` — design locked by brainstorm 2026-05-17 |
+| 05 | [Wire EventBridge schedules](phase-05-eventbridge-schedules.md) | **deferred to first-deploy decision** | 30m | `AWS::Scheduler::Schedule` resource for lolschedule cron — needs HTTPS-vs-direct-invoke call validated against live SAM CLI |
 
 ## Dependency graph
 ```

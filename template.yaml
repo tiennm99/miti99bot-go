@@ -40,19 +40,6 @@ Parameters:
     Default: ""
     Description: Email for $1 budget alert. Leave empty to skip the budget resource.
 
-  # CFN does not allow {{resolve:ssm-secure:...}} inside
-  # AWS::Scheduler::Schedule HttpInvokeArgs.HeaderParameters (documented
-  # CloudFormation limitation — secure-string dynamic refs have a fixed
-  # property allowlist that excludes Scheduler header parameters). CI fetches
-  # /miti99bot/${StackEnv}/cron-shared-secret from SSM at deploy time and
-  # passes it here via --parameter-overrides. NoEcho masks the value in the
-  # CloudFormation console.
-  CronSharedSecret:
-    Type: String
-    NoEcho: true
-    Default: ""
-    Description: Shared secret EventBridge Scheduler attaches as the X-Cron-Token header. Sourced from SSM by CI.
-
 Conditions:
   HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
 
@@ -187,32 +174,8 @@ Resources:
                 Action: sqs:SendMessage
                 Resource: !GetAtt CronDLQ.Arn
 
-  LolscheduleDailyPushSchedule:
-    Type: AWS::Scheduler::Schedule
-    Properties:
-      Name: !Sub "${AWS::StackName}-lolschedule-daily-push"
-      ScheduleExpression: "cron(0 1 * * ? *)" # 01:00 UTC = 08:00 ICT
-      ScheduleExpressionTimezone: UTC
-      FlexibleTimeWindow: { Mode: OFF }
-      State: ENABLED
-      Target:
-        # HTTPS universal target — preserves the /cron/{name} route inside the
-        # Lambda. IAM (lambda:InvokeFunctionUrl) is already granted to
-        # scheduler.amazonaws.com on SchedulerExecutionRole above.
-        Arn: arn:aws:scheduler:::http-invoke
-        RoleArn: !GetAtt SchedulerExecutionRole.Arn
-        Input: "{}"
-        RetryPolicy:
-          MaximumRetryAttempts: 2
-          MaximumEventAgeInSeconds: 600
-        DeadLetterConfig:
-          Arn: !GetAtt CronDLQ.Arn
-        HttpInvokeArgs:
-          # FunctionUrl ends with '/'; path starts without one → clean single-slash join.
-          EndpointUrl: !Sub "${BotFunctionUrl.FunctionUrl}cron/lolschedule_daily_push"
-          HttpMethod: POST
-          HeaderParameters:
-            X-Cron-Token: !Ref CronSharedSecret
+  # Concrete AWS::Scheduler::Schedule resources are added per cron handler;
+  # the role + DLQ above are provisioned once and reused across all schedules.
 
   # --- Cost guard -----------------------------------------------------------
 
