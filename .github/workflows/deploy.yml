@@ -43,17 +43,25 @@ jobs:
       - name: SAM deploy
         env:
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+          STACK_ENV: prod
         run: |
+          set -euo pipefail
+          # EventBridge Connection consumes ApiKeyValue at stack-update time
+          # and stores it in a service-linked secret. SSM holds the canonical
+          # value; fetch here and pass as a NoEcho CFN parameter so it never
+          # appears in template source or stack events.
+          CRON_SECRET=$(aws ssm get-parameter \
+            --name "/miti99bot/${STACK_ENV}/cron-shared-secret" \
+            --with-decryption --query Parameter.Value --output text)
+          echo "::add-mask::$CRON_SECRET"
+          OVERRIDES="CronSharedSecret=$CRON_SECRET"
           if [ -n "$ALERT_EMAIL" ]; then
-            sam deploy --template-file template.yaml \
-              --no-confirm-changeset \
-              --no-fail-on-empty-changeset \
-              --parameter-overrides "AlertEmail=$ALERT_EMAIL"
-          else
-            sam deploy --template-file template.yaml \
-              --no-confirm-changeset \
-              --no-fail-on-empty-changeset
+            OVERRIDES="$OVERRIDES AlertEmail=$ALERT_EMAIL"
           fi
+          sam deploy --template-file template.yaml \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides "$OVERRIDES"
 
       - name: Smoke test (Function URL responds)
         run: |
