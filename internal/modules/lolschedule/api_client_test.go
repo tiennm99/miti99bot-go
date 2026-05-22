@@ -145,7 +145,7 @@ func TestFetchSchedulePage_DropsShowEvents(t *testing.T) {
 	srv, _ := mkServer(t, sampleBody)
 	c := &Client{HTTP: srv.Client(), URL: srv.URL}
 
-	events, _, err := c.fetchSchedulePage(context.Background(), "")
+	events, _, _, err := c.fetchSchedulePage(context.Background(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,10 +162,69 @@ func TestFetchSchedulePage_NonJSONErrors(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := &Client{HTTP: srv.Client(), URL: srv.URL}
-	_, _, err := c.fetchSchedulePage(context.Background(), "")
+	_, _, _, err := c.fetchSchedulePage(context.Background(), "")
 	if err == nil || !strings.Contains(err.Error(), "decode") {
 		t.Errorf("non-JSON should produce decode error; got %v", err)
 	}
+}
+
+// TestFetchEventsInRange_WalksOlderForPastWindow guards the calendar-week
+// regression: when `from` precedes the default page's earliest event, the
+// fetcher must follow `pages.older` to pick up events earlier in the week.
+//
+// Server simulates 3 pages:
+//   - default (no pageToken)            → Thu May 21
+//   - pageToken=older1                  → Wed May 20 (returns older=older2)
+//   - pageToken=older2                  → Mon May 18 + Tue May 19 (no older)
+//
+// Asking for Mon May 18 → next Mon must return all 4 events.
+func TestFetchEventsInRange_WalksOlderForPastWindow(t *testing.T) {
+	defaultBody := `{"data":{"schedule":{"events":[
+		{"startTime":"2026-05-21T05:00:00Z","state":"completed","league":{"slug":"lck","name":"LCK"},"match":{"teams":[{"code":"BFX"},{"code":"HLE"}],"strategy":{"count":3}}}
+	],"pages":{"newer":null,"older":"older1"}}}}`
+	older1Body := `{"data":{"schedule":{"events":[
+		{"startTime":"2026-05-20T05:00:00Z","state":"completed","league":{"slug":"lck","name":"LCK"},"match":{"teams":[{"code":"GEN"},{"code":"T1"}],"strategy":{"count":3}}}
+	],"pages":{"newer":"newerX","older":"older2"}}}}`
+	older2Body := `{"data":{"schedule":{"events":[
+		{"startTime":"2026-05-18T05:00:00Z","state":"completed","league":{"slug":"lck","name":"LCK"},"match":{"teams":[{"code":"KT"},{"code":"DK"}],"strategy":{"count":3}}},
+		{"startTime":"2026-05-19T05:00:00Z","state":"completed","league":{"slug":"lck","name":"LCK"},"match":{"teams":[{"code":"NS"},{"code":"BRO"}],"strategy":{"count":3}}}
+	],"pages":{"newer":"newerY","older":null}}}}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Query().Get("pageToken") {
+		case "":
+			_, _ = w.Write([]byte(defaultBody))
+		case "older1":
+			_, _ = w.Write([]byte(older1Body))
+		case "older2":
+			_, _ = w.Write([]byte(older2Body))
+		default:
+			t.Errorf("unexpected pageToken %q", r.URL.Query().Get("pageToken"))
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer srv.Close()
+
+	c := &Client{HTTP: srv.Client(), URL: srv.URL}
+	from := time.Date(2026, 5, 18, 0, 0, 0, 0, time.UTC)
+	to := from.Add(7 * 24 * time.Hour)
+
+	events, err := c.fetchEventsInRange(context.Background(), from, to, 0)
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	if len(events) != 4 {
+		t.Errorf("events = %d, want 4 (Mon, Tue, Wed, Thu); got days=%v", len(events), eventDays(events))
+	}
+}
+
+func eventDays(events []ScheduleEvent) []string {
+	out := make([]string, 0, len(events))
+	for _, e := range events {
+		out = append(out, e.StartTime)
+	}
+	return out
 }
 
 // truncate is internal but worth a smoke test — log payloads use it.

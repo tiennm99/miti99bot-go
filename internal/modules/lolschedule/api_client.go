@@ -134,12 +134,15 @@ func (c *Client) baseURL() string {
 	return apiURL
 }
 
-// fetchSchedulePage retrieves one page of events. pageToken is the forward
-// cursor from a previous call's `pages.newer`.
-func (c *Client) fetchSchedulePage(ctx context.Context, pageToken string) ([]ScheduleEvent, string, error) {
+// fetchSchedulePage retrieves one page of events. pageToken can be either a
+// forward (`pages.newer`) or backward (`pages.older`) cursor — the upstream
+// uses the same query param for both directions. Returns the page's events
+// (sorted ascending by startTime) plus both cursor tokens for further
+// navigation in either direction.
+func (c *Client) fetchSchedulePage(ctx context.Context, pageToken string) ([]ScheduleEvent, string, string, error) {
 	u, err := url.Parse(c.baseURL())
 	if err != nil {
-		return nil, "", fmt.Errorf("lolschedule parse url: %w", err)
+		return nil, "", "", fmt.Errorf("lolschedule parse url: %w", err)
 	}
 	q := u.Query()
 	q.Set("hl", "en-US")
@@ -150,7 +153,7 @@ func (c *Client) fetchSchedulePage(ctx context.Context, pageToken string) ([]Sch
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("lolschedule build request: %w", err)
+		return nil, "", "", fmt.Errorf("lolschedule build request: %w", err)
 	}
 	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("User-Agent", userAgent)
@@ -158,20 +161,20 @@ func (c *Client) fetchSchedulePage(ctx context.Context, pageToken string) ([]Sch
 
 	resp, err := c.httpClient().Do(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("lolschedule do: %w", err)
+		return nil, "", "", fmt.Errorf("lolschedule do: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, "", fmt.Errorf("lolschedule read: %w", err)
+		return nil, "", "", fmt.Errorf("lolschedule read: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Warn("lolschedule_fetch", "status", resp.StatusCode, "body", truncate(string(body), 500))
-		return nil, "", fmt.Errorf("lolschedule API HTTP %d", resp.StatusCode)
+		return nil, "", "", fmt.Errorf("lolschedule API HTTP %d", resp.StatusCode)
 	}
 	var page schedulePage
 	if err := json.Unmarshal(body, &page); err != nil {
-		return nil, "", fmt.Errorf("lolschedule decode: %w", err)
+		return nil, "", "", fmt.Errorf("lolschedule decode: %w", err)
 	}
 	// Drop pre/post-show segments; they aren't matches.
 	out := make([]ScheduleEvent, 0, len(page.Data.Schedule.Events))
@@ -181,36 +184,77 @@ func (c *Client) fetchSchedulePage(ctx context.Context, pageToken string) ([]Sch
 		}
 		out = append(out, e)
 	}
-	return out, page.Data.Schedule.Pages.Newer, nil
+	return out, page.Data.Schedule.Pages.Newer, page.Data.Schedule.Pages.Older, nil
 }
 
-// fetchEventsInRange paginates forward until the supplied window is covered
-// or maxPages is reached. Default page returns ~20 events; week view
-// usually needs 1 extra page.
+// earliestStart returns the first parseable startTime in a page that is sorted
+// ascending. ok=false when no event has a valid timestamp.
+func earliestStart(events []ScheduleEvent) (time.Time, bool) {
+	for _, e := range events {
+		if t, err := time.Parse(time.RFC3339, e.StartTime); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+// latestStart returns the last parseable startTime in a page that is sorted
+// ascending. ok=false when no event has a valid timestamp.
+func latestStart(events []ScheduleEvent) (time.Time, bool) {
+	for i := len(events) - 1; i >= 0; i-- {
+		if t, err := time.Parse(time.RFC3339, events[i].StartTime); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+// fetchEventsInRange covers [from, to) by walking both pagination directions
+// from the default page (anchored at "now"). Walks older pages until the
+// earliest collected event is ≤ from, then walks newer pages until the
+// latest is ≥ to. Page budget caps both directions combined to bound
+// upstream calls during dense weeks.
 func (c *Client) fetchEventsInRange(ctx context.Context, from, to time.Time, maxPages int) ([]ScheduleEvent, error) {
 	if maxPages <= 0 {
-		maxPages = 3
+		maxPages = 8
 	}
-	var collected []ScheduleEvent
-	pageToken := ""
-	for i := 0; i < maxPages; i++ {
-		events, newer, err := c.fetchSchedulePage(ctx, pageToken)
+	events, newer, older, err := c.fetchSchedulePage(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	collected := events
+	pages := 1
+
+	// Walk older while the window extends before what we've collected.
+	for pages < maxPages && older != "" {
+		if t, ok := earliestStart(collected); ok && !t.After(from) {
+			break
+		}
+		olderEvents, _, prevOlder, err := c.fetchSchedulePage(ctx, older)
 		if err != nil {
 			return nil, err
 		}
-		collected = append(collected, events...)
-		// If the latest event in the page is already past our window end, stop.
-		if len(events) > 0 {
-			lastT, parseErr := time.Parse(time.RFC3339, events[len(events)-1].StartTime)
-			if parseErr == nil && !lastT.Before(to) {
-				break
-			}
-		}
-		if newer == "" {
+		// Each page is ascending and disjoint from the next, so prepending
+		// preserves overall ascending order.
+		collected = append(olderEvents, collected...)
+		older = prevOlder
+		pages++
+	}
+
+	// Walk newer while the window extends past what we've collected.
+	for pages < maxPages && newer != "" {
+		if t, ok := latestStart(collected); ok && !t.Before(to) {
 			break
 		}
-		pageToken = newer
+		newerEvents, nextNewer, _, err := c.fetchSchedulePage(ctx, newer)
+		if err != nil {
+			return nil, err
+		}
+		collected = append(collected, newerEvents...)
+		newer = nextNewer
+		pages++
 	}
+
 	out := make([]ScheduleEvent, 0, len(collected))
 	for _, e := range collected {
 		t, err := time.Parse(time.RFC3339, e.StartTime)
