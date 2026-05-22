@@ -106,6 +106,28 @@ func TestIctDayStartOf(t *testing.T) {
 	}
 }
 
+func TestIctWeekStartOf(t *testing.T) {
+	// refNow is Sat 2026-05-09 19:00 ICT. Monday of that ICT week is
+	// 2026-05-04 00:00 ICT = 2026-05-03 17:00 UTC.
+	wantMon := time.Date(2026, 5, 3, 17, 0, 0, 0, time.UTC)
+	if got := ictWeekStartOf(refNow); !got.Equal(wantMon) {
+		t.Errorf("ictWeekStartOf(Sat) = %v, want %v", got, wantMon)
+	}
+
+	// When `now` IS a Monday, week start is that same Monday.
+	mon := time.Date(2026, 5, 4, 8, 0, 0, 0, IctLocation) // Mon 2026-05-04 08:00 ICT
+	wantSameMon := time.Date(2026, 5, 4, 0, 0, 0, 0, IctLocation).UTC()
+	if got := ictWeekStartOf(mon); !got.Equal(wantSameMon) {
+		t.Errorf("ictWeekStartOf(Mon) = %v, want %v", got, wantSameMon)
+	}
+
+	// Sunday belongs to the same ISO week as the preceding Monday.
+	sun := time.Date(2026, 5, 10, 23, 0, 0, 0, IctLocation) // Sun 2026-05-10 23:00 ICT
+	if got := ictWeekStartOf(sun); !got.Equal(wantSameMon) {
+		t.Errorf("ictWeekStartOf(Sun) = %v, want %v", got, wantSameMon)
+	}
+}
+
 func TestAddDays(t *testing.T) {
 	base := time.Date(2026, 5, 9, 12, 30, 0, 0, time.UTC)
 	got := addDays(base, 3)

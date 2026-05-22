@@ -110,6 +110,12 @@ func TestHandleWeek_RendersWeek(t *testing.T) {
 	if !strings.Contains(got, "→") {
 		t.Errorf("week header missing arrow: %q", got)
 	}
+	// fakeNowMs is Sat 2026-05-09 ICT → calendar week is Mon May 4 → Sun May 10.
+	for _, want := range []string{"Mon May 4", "Sun May 10"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("week header missing %q in:\n%s", want, got)
+		}
+	}
 }
 
 func TestHandleSubscribe_AddsAndIsIdempotent(t *testing.T) {

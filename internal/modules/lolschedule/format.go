@@ -212,7 +212,7 @@ func RenderToday(events []ScheduleEvent, day time.Time) string {
 	return header + "\n\n" + strings.Join(sections, "\n\n")
 }
 
-// RenderWeek renders the next-7-days reply — grouped by league → day.
+// RenderWeek renders a week-range reply — grouped by league → day.
 // `to` is exclusive (the start of the day after the range), so the label
 // uses to-1.
 func RenderWeek(events []ScheduleEvent, from, to time.Time) string {

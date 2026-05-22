@@ -36,6 +36,17 @@ func ictDayStartOf(now time.Time) time.Time {
 	return dayStart.UTC()
 }
 
+// ictWeekStartOf returns the start of the ICT calendar week (Monday 00:00 ICT)
+// containing now, expressed as a UTC instant. Week boundary is ISO 8601:
+// Monday is day 1, Sunday is day 7.
+func ictWeekStartOf(now time.Time) time.Time {
+	day := ictDayStartOf(now).In(IctLocation)
+	// time.Weekday: Sunday=0, Monday=1, ..., Saturday=6.
+	// Days since Monday: Mon→0, Tue→1, ..., Sun→6.
+	daysFromMonday := (int(day.Weekday()) + 6) % 7
+	return day.AddDate(0, 0, -daysFromMonday).UTC()
+}
+
 // addDays returns date + days, preserving time-of-day.
 func addDays(date time.Time, days int) time.Time {
 	return date.Add(time.Duration(days) * 24 * time.Hour)

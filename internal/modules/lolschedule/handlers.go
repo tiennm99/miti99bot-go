@@ -58,13 +58,14 @@ func (s *state) handleToday(ctx context.Context, b *bot.Bot, update *models.Upda
 	return s.replyForRange(ctx, b, msg, from, addDays(from, 1), false)
 }
 
-// handleWeek is /lolschedule_week — next 7 ICT days.
+// handleWeek is /lolschedule_week — the current ICT calendar week
+// (Monday 00:00 ICT through the following Monday 00:00 ICT, exclusive).
 func (s *state) handleWeek(ctx context.Context, b *bot.Bot, update *models.Update) error {
 	msg := update.Message
 	if msg == nil {
 		return nil
 	}
-	from := ictDayStartOf(s.now())
+	from := ictWeekStartOf(s.now())
 	return s.replyForRange(ctx, b, msg, from, addDays(from, 7), true)
 }
 
