@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -77,20 +78,42 @@ func statsCommand(c *counter) modules.Command {
 				return chathelper.Reply(ctx, b, update.Message, "No command stats yet.")
 			}
 
+			// Fan-out the per-key GetJSONs concurrently. Sequential reads make
+			// /stats latency O(N) round-trips to DynamoDB; on a cold Lambda
+			// container with 20+ commands, that can push the synchronous
+			// handler past the 10s webhook deadline and the trailing Reply
+			// SendMessage then fails on a cancelled ctx — the user sees no
+			// reply at all. Fanning out collapses wall-clock latency to one
+			// round-trip while keeping the same per-key error isolation.
 			type row struct {
 				name string
 				n    int64
+				ok   bool
 			}
-			rows := make([]row, 0, len(keys))
-			for _, k := range keys {
-				name := strings.TrimPrefix(k, countPrefix)
-				var entry countEntry
-				if err := c.kv.GetJSON(ctx, k, &entry); err != nil {
-					log.Error("stats: kv get failed during render", "key", k, "err", err)
-					continue
+			rows := make([]row, len(keys))
+			var wg sync.WaitGroup
+			for i, k := range keys {
+				wg.Add(1)
+				go func(i int, k string) {
+					defer wg.Done()
+					name := strings.TrimPrefix(k, countPrefix)
+					var entry countEntry
+					if err := c.kv.GetJSON(ctx, k, &entry); err != nil {
+						log.Error("stats: kv get failed during render", "key", k, "err", err)
+						rows[i] = row{name: name}
+						return
+					}
+					rows[i] = row{name: name, n: entry.N, ok: true}
+				}(i, k)
+			}
+			wg.Wait()
+			kept := rows[:0]
+			for _, r := range rows {
+				if r.ok {
+					kept = append(kept, r)
 				}
-				rows = append(rows, row{name: name, n: entry.N})
 			}
+			rows = kept
 			sort.Slice(rows, func(i, j int) bool {
 				if rows[i].n != rows[j].n {
 					return rows[i].n > rows[j].n
