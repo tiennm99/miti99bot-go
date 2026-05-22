@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -66,6 +67,11 @@ func Install(b *bot.Bot, reg *Registry, auth Auth) {
 					return // silent — do not leak existence of gated commands
 				}
 				metrics.IncCommand(cmdCopy.Name)
+				go func() {
+					hookCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+					defer cancel()
+					reg.RunCommandHooks(hookCtx, cmdCopy.Name)
+				}()
 				if err := cmdCopy.Handler(ctx, b, update); err != nil {
 					metrics.IncError("handler-error")
 					log.Error("command failed", "command", cmdCopy.Name, "err", err)

@@ -55,9 +55,10 @@ type Cron struct {
 // Module.Name is overridden by the registry to its catalog key; factories may
 // leave it blank.
 type Module struct {
-	Name     string
-	Commands []Command
-	Crons    []Cron
+	Name        string
+	Commands    []Command
+	Crons       []Cron
+	CommandHook func(ctx context.Context, name string) // optional; called by dispatcher after each authorized command invocation
 }
 
 // Deps is the dependency bundle a Factory receives.

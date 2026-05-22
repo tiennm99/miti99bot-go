@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
@@ -28,13 +29,14 @@ var moduleNameRe = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
 // dispatchers and handlers capture *Registry by pointer and assume the maps
 // are stable. A future hot-reload feature would need an explicit mutation API.
 type Registry struct {
-	Modules     []Module           // in MODULES-env order
-	AllCommands map[string]Command // name → Command, deduped across modules
-	publicCmds  map[string]Command
-	protected   map[string]Command
-	private     map[string]Command
-	crons       map[string]Cron // name → Cron, unique across modules
-	cronDeps    map[string]Deps // cron name → owning module's prefixed Deps
+	Modules      []Module           // in MODULES-env order
+	AllCommands  map[string]Command // name → Command, deduped across modules
+	publicCmds   map[string]Command
+	protected    map[string]Command
+	private      map[string]Command
+	crons        map[string]Cron // name → Cron, unique across modules
+	cronDeps     map[string]Deps // cron name → owning module's prefixed Deps
+	commandHooks []func(ctx context.Context, name string)
 }
 
 // PublicCommands returns commands tagged VisibilityPublic, sorted by name.
@@ -57,6 +59,15 @@ func (r *Registry) Cron(name string) (Cron, bool) {
 func (r *Registry) CronDeps(name string) (Deps, bool) {
 	d, ok := r.cronDeps[name]
 	return d, ok
+}
+
+// RunCommandHooks calls every CommandHook registered by loaded modules in
+// order. Errors are not returned — hooks are best-effort (e.g., stats
+// counters) and must not fail the command handler.
+func (r *Registry) RunCommandHooks(ctx context.Context, name string) {
+	for _, h := range r.commandHooks {
+		h(ctx, name)
+	}
 }
 
 // Crons returns all loaded crons, sorted by name. Allocates a fresh slice on
@@ -136,6 +147,9 @@ func Build(enabled []string, factories map[string]Factory, kv storage.KVProvider
 			return nil, fmt.Errorf("module %q: factory returned mismatched Name=%q", name, mod.Name)
 		}
 		mod.Name = name
+		if mod.CommandHook != nil {
+			reg.commandHooks = append(reg.commandHooks, mod.CommandHook)
+		}
 
 		for _, cmd := range mod.Commands {
 			if err := validateCommand(cmd); err != nil {

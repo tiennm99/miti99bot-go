@@ -23,6 +23,7 @@ import (
 	"github.com/tiennm99/miti99bot/internal/modules/loldle"
 	"github.com/tiennm99/miti99bot/internal/modules/lolschedule"
 	"github.com/tiennm99/miti99bot/internal/modules/misc"
+	"github.com/tiennm99/miti99bot/internal/modules/stats"
 	"github.com/tiennm99/miti99bot/internal/modules/trading"
 	"github.com/tiennm99/miti99bot/internal/modules/twentyq"
 	"github.com/tiennm99/miti99bot/internal/modules/util"
@@ -49,6 +50,7 @@ func factories() map[string]modules.Factory {
 		"lolschedule": lolschedule.New,
 		"twentyq":     twentyq.New,
 		"trading":     trading.New,
+		"stats":       stats.New,
 	}
 }
 

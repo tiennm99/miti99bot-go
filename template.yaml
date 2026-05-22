@@ -14,7 +14,7 @@ Parameters:
 
   ModulesCSV:
     Type: String
-    Default: util,misc,wordle,loldle,lolschedule,twentyq,trading
+    Default: util,misc,wordle,loldle,lolschedule,twentyq,trading,stats
     Description: Comma-separated module names enabled at runtime (matches MODULES env).
 
   BotOwnerID:
@@ -135,6 +135,8 @@ Resources:
           TELEGRAM_WEBHOOK_SECRET_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/telegram-webhook-secret"
           GEMINI_API_KEY_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/gemini-api-key"
           CRON_SHARED_SECRET_PARAMETER_NAME: !Sub "/miti99bot/${StackEnv}/cron-shared-secret"
+      # stats module uses non-atomic KV increment; concurrency > 1 would lose counts.
+      ReservedConcurrentExecutions: 1
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: BUFFERED
