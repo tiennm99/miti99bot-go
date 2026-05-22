@@ -31,7 +31,9 @@ type counter struct {
 func countKey(name string) string { return countPrefix + name }
 
 // Inc increments the persistent invocation count for the named command.
-// Errors are logged and swallowed — stats are best-effort.
+// Errors are logged and swallowed and concurrent invocations of the same
+// command may lose updates — stats are best-effort. A future atomic
+// increment (e.g. DynamoDB UpdateItem ADD) would close the race.
 func (c *counter) Inc(ctx context.Context, name string) {
 	key := countKey(name)
 	var entry countEntry

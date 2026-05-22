@@ -91,6 +91,10 @@
     {
       "command": "trade_stats",
       "description": "Show portfolio summary with P&L"
+    },
+    {
+      "command": "stats",
+      "description": "Show command usage statistics"
     }
   ]
 }
