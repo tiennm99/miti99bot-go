@@ -54,12 +54,12 @@ jobs:
             --name "/miti99bot/${STACK_ENV}/cron-shared-secret" \
             --with-decryption --query Parameter.Value --output text)
           echo "::add-mask::$CRON_SECRET"
-          # Extract non-secret deploy params from samconfig.toml so it stays
-          # the single source of truth (CI's --parameter-overrides replaces,
-          # not merges with, samconfig.toml values).
-          BOT_OWNER_ID=$(sed -n 's/.*BotOwnerID=\\"\\([^\\]*\\)\\".*/\1/p' samconfig.toml)
-          ADMIN_USER_IDS=$(sed -n 's/.*AdminUserIDs=\\"\\([^\\]*\\)\\".*/\1/p' samconfig.toml)
-          OVERRIDES="CronSharedSecret=$CRON_SECRET BotOwnerID=$BOT_OWNER_ID AdminUserIDs=$ADMIN_USER_IDS"
+          # Non-secret CFN params. SAM CLI's --parameter-overrides REPLACES
+          # samconfig.toml's parameter_overrides (does not merge), so anything
+          # CI needs in the deployed stack must be listed here explicitly.
+          # Telegram user IDs are public (visible to anyone the bot DMs), so
+          # they live in this committed workflow rather than a secret.
+          OVERRIDES="CronSharedSecret=$CRON_SECRET BotOwnerID=1064111334 AdminUserIDs=1064111334"
           if [ -n "$ALERT_EMAIL" ]; then
             OVERRIDES="$OVERRIDES AlertEmail=$ALERT_EMAIL"
           fi
