@@ -72,7 +72,7 @@ func Install(b *bot.Bot, reg *Registry, auth Auth) {
 				go func() { //nolint:gosec // G118: goroutine intentionally detached from request context
 					hookCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 					defer cancel()
-					reg.RunCommandHooks(hookCtx, cmdCopy.Name)
+					reg.RunCommandHooks(hookCtx, cmdCopy.Name, update)
 				}()
 				if err := cmdCopy.Handler(ctx, b, update); err != nil {
 					metrics.IncError("handler-error")

@@ -94,7 +94,7 @@
     },
     {
       "command": "stats",
-      "description": "Show command usage statistics"
+      "description": "Stats. Try: /stats users, /stats user <name>, /stats cmd <name>"
     }
   ]
 }

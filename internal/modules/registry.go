@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 
 	"github.com/tiennm99/miti99bot/internal/ai"
 	"github.com/tiennm99/miti99bot/internal/storage"
@@ -36,7 +37,7 @@ type Registry struct {
 	private      map[string]Command
 	crons        map[string]Cron // name → Cron, unique across modules
 	cronDeps     map[string]Deps // cron name → owning module's prefixed Deps
-	commandHooks []func(ctx context.Context, name string)
+	commandHooks []func(ctx context.Context, name string, update *models.Update)
 }
 
 // PublicCommands returns commands tagged VisibilityPublic, sorted by name.
@@ -63,10 +64,11 @@ func (r *Registry) CronDeps(name string) (Deps, bool) {
 
 // RunCommandHooks calls every CommandHook registered by loaded modules in
 // order. Errors are not returned — hooks are best-effort (e.g., stats
-// counters) and must not fail the command handler.
-func (r *Registry) RunCommandHooks(ctx context.Context, name string) {
+// counters) and must not fail the command handler. update may be nil (e.g.
+// when invoked directly from tests); hooks must tolerate that.
+func (r *Registry) RunCommandHooks(ctx context.Context, name string, update *models.Update) {
 	for _, h := range r.commandHooks {
-		h(ctx, name)
+		h(ctx, name, update)
 	}
 }
 

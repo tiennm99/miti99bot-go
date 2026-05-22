@@ -13,6 +13,7 @@ Plug-n-play Telegram bot framework in Go. Runs on AWS Lambda + DynamoDB + EventB
 | `lolschedule` | Pro-match schedule + daily push |
 | `twentyq` | 20-questions game (requires Gemini API key) |
 | `trading` | VN-stocks paper trading |
+| `stats` | `/stats` (top commands), `/stats users`, `/stats user <name>`, `/stats cmd <name>` |
 
 Disable any module by editing `MODULES` in `template.yaml`.
 

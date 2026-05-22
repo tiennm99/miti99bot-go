@@ -58,7 +58,7 @@ type Module struct {
 	Name        string
 	Commands    []Command
 	Crons       []Cron
-	CommandHook func(ctx context.Context, name string) // optional; called by dispatcher after each authorized command invocation
+	CommandHook func(ctx context.Context, name string, update *models.Update) // optional; called by dispatcher after each authorized command invocation. update carries the originating Telegram update so hooks can attribute usage to a user.
 }
 
 // Deps is the dependency bundle a Factory receives.
