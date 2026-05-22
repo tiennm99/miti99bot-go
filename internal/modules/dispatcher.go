@@ -68,6 +68,9 @@ func Install(b *bot.Bot, reg *Registry, auth Auth) {
 				}
 				metrics.IncCommand(cmdCopy.Name)
 				go func() {
+					// context.Background is intentional: the hook must outlive the request
+					// context so stats writes complete even after the handler returns.
+					//nolint:gosec // G118: goroutine intentionally detached from request context
 					hookCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 					defer cancel()
 					reg.RunCommandHooks(hookCtx, cmdCopy.Name)

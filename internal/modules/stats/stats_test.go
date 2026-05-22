@@ -110,7 +110,7 @@ func TestStats_ShowsCountsSortedByPopularity(t *testing.T) {
 	if wordlePos < 0 || loLdlePos < 0 || pingPos < 0 {
 		t.Fatalf("reply missing expected commands: %q", got)
 	}
-	if !(wordlePos < loLdlePos && loLdlePos < pingPos) {
+	if wordlePos >= loLdlePos || loLdlePos >= pingPos {
 		t.Errorf("commands not in descending count order: wordle=%d loldle=%d ping=%d in %q",
 			wordlePos, loLdlePos, pingPos, got)
 	}
