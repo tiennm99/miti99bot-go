@@ -13,7 +13,7 @@ resolve_s3 = true
 s3_prefix = "miti99bot"
 # Secrets MUST live in SSM Parameter Store (see aws/README.md). Never put
 # them here — this file is committed.
-parameter_overrides = "StackEnv=\"prod\" ModulesCSV=\"util,misc,wordle,loldle,lolschedule,twentyq,trading\" BotOwnerID=\"1064111334\" AdminUserIDs=\"1064111334\" LambdaAdapterLayerArn=\"arn:aws:lambda:ap-southeast-1:753240598075:layer:LambdaAdapterLayerArm64:25\" AlertEmail=\"minhtienit99@gmail.com\""
+parameter_overrides = "StackEnv=\"prod\" ModulesCSV=\"util,misc,wordle,loldle,lolschedule,twentyq,trading,stats\" BotOwnerID=\"1064111334\" AdminUserIDs=\"1064111334\" LambdaAdapterLayerArn=\"arn:aws:lambda:ap-southeast-1:753240598075:layer:LambdaAdapterLayerArm64:25\" AlertEmail=\"minhtienit99@gmail.com\""
 image_repositories = []
 
 [default.validate.parameters]
