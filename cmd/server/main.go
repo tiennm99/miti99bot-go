@@ -16,6 +16,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/tiennm99/miti99bot/internal/ai"
+	"github.com/tiennm99/miti99bot/internal/deploynotify"
 	"github.com/tiennm99/miti99bot/internal/log"
 	"github.com/tiennm99/miti99bot/internal/metrics"
 	"github.com/tiennm99/miti99bot/internal/modules"
@@ -30,6 +31,11 @@ import (
 	"github.com/tiennm99/miti99bot/internal/storage"
 	"github.com/tiennm99/miti99bot/internal/telegram"
 )
+
+// gitSHA is populated at build time via `-ldflags "-X main.gitSHA=<sha>"`
+// (see Makefile). Empty value means the binary was built without that flag —
+// deploynotify treats it as a signal to stay silent.
+var gitSHA string
 
 // factories is the static module catalog. Adding a new module is a one-line
 // change here. Lives in main rather than the modules package to avoid an
@@ -123,6 +129,13 @@ func main() {
 	if cfg.CronSecret == "" {
 		log.Warn("CRON_SHARED_SECRET unset; /cron/{name} disabled (404 to all)")
 	}
+
+	deploynotify.Run(rootCtx, deploynotify.Config{
+		Bot:     b,
+		KV:      provider.For("deploynotify"),
+		OwnerID: cfg.BotOwnerID,
+		GitSHA:  gitSHA,
+	})
 
 	handler := server.New(server.Config{
 		Bot:           b,

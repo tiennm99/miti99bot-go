@@ -5,6 +5,13 @@ LAMBDA_GOOS   ?= linux
 LAMBDA_GOARCH ?= arm64
 LAMBDA_OUT    := build/lambda/bootstrap
 
+# Short git SHA baked into the binary at link time. Consumed by
+# internal/deploynotify to DM the owner once per new version. Falls back to
+# empty string outside a git checkout (tarball, fresh clone without history)
+# — deploynotify treats empty as "stay silent".
+GIT_SHA := $(shell git rev-parse --short HEAD 2>/dev/null)
+LDFLAGS := -s -w -X main.gitSHA=$(GIT_SHA)
+
 # AWS deploy defaults. Override as needed:
 #   make telegram-webhook AWS_PROFILE=admin STACK_NAME=miti99bot STACK_ENV=prod
 AWS_PROFILE ?= admin
@@ -49,12 +56,12 @@ vet: ## go vet
 # ---- Build ----------------------------------------------------------------
 
 build: ## Build the local server binary (host arch)
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/server ./cmd/server
+	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o ./bin/server ./cmd/server
 
 build-lambda: ## Cross-compile bootstrap for Lambda (linux/arm64)
 	@mkdir -p $(dir $(LAMBDA_OUT))
 	CGO_ENABLED=0 GOOS=$(LAMBDA_GOOS) GOARCH=$(LAMBDA_GOARCH) \
-		go build -tags lambda.norpc -ldflags="-s -w" \
+		go build -tags lambda.norpc -ldflags="$(LDFLAGS)" \
 		-o $(LAMBDA_OUT) ./cmd/server
 	@chmod +x $(LAMBDA_OUT)
 	@ls -lh $(LAMBDA_OUT) | awk '{print "lambda binary:", $$5}'
