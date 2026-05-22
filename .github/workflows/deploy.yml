@@ -59,7 +59,7 @@ jobs:
           # CI needs in the deployed stack must be listed here explicitly.
           # Telegram user IDs are public (visible to anyone the bot DMs), so
           # they live in this committed workflow rather than a secret.
-          OVERRIDES="CronSharedSecret=$CRON_SECRET BotOwnerID=1064111334 AdminUserIDs=1064111334"
+          OVERRIDES="CronSharedSecret=$CRON_SECRET BotOwnerID=1064111334 AdminUserIDs=1064111334 ModulesCSV=util,misc,wordle,loldle,lolschedule,twentyq,trading,stats"
           if [ -n "$ALERT_EMAIL" ]; then
             OVERRIDES="$OVERRIDES AlertEmail=$ALERT_EMAIL"
           fi
