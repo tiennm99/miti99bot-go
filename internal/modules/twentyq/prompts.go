@@ -7,8 +7,8 @@ import (
 
 const historyWindow = 5
 
-// buildSystemPrompt: per-turn judge prompt. JS-parity verbatim. The LLM is
-// instructed to emit one-line JSON; parser.go does the parse.
+// buildSystemPrompt: per-turn judge prompt. The LLM is instructed to emit
+// one-line JSON; parser.go does the parse.
 func buildSystemPrompt(g GameState) string {
 	recent := g.Turns
 	if len(recent) > historyWindow {

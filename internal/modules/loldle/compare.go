@@ -4,8 +4,8 @@ import (
 	"strings"
 )
 
-// AttrType classifies how a single attribute is compared. Matches the JS
-// source's "exact" | "multi" | "year" discriminator.
+// AttrType classifies how a single attribute is compared:
+// "exact" | "multi" | "year".
 type AttrType string
 
 const (
@@ -14,16 +14,18 @@ const (
 	attrYear  AttrType = "year"
 )
 
-// Result categories. Match JS strings byte-for-byte (handlers/render rely on
-// these literals via the marker maps).
+// Result categories. handlers/render rely on these literals via the marker
+// maps, so renaming a constant requires updating those maps in lockstep.
 const (
 	ResultCorrect = "correct"
 	ResultPartial = "partial"
 	ResultWrong   = "wrong"
 )
 
-// AttributeRow describes one attribute's comparison output. JS shape:
-// {key, label, type, guessValue, targetValue, result, direction?}.
+// AttributeRow describes one attribute's comparison output as one row of
+// the render board: key/label identify the row, type drives the comparison
+// algorithm, result is the rendered marker, direction is set only for
+// wrong year-type rows ("up"/"down").
 type AttributeRow struct {
 	Key         string
 	Label       string
@@ -35,8 +37,8 @@ type AttributeRow struct {
 }
 
 // classicAttributes is the ordered comparison spec. Order matters for both
-// render output and the JS-port test that asserts `compareChampions(...)`
-// returns rows in this exact sequence.
+// render output and the test that asserts CompareChampions returns rows in
+// this exact sequence — reordering changes the on-screen board.
 var classicAttributes = []AttributeRow{
 	{Key: "gender", Label: "Gender", Type: attrExact},
 	{Key: "species", Label: "Species", Type: attrMulti},
@@ -51,7 +53,7 @@ var classicAttributes = []AttributeRow{
 // Values are compared per attr.Type:
 //   - exact: case-insensitive string equality.
 //   - multi: set comparison; full match → correct, partial overlap → partial,
-//     no overlap → wrong. Two empty sets are correct (matches JS).
+//     no overlap → wrong. Two empty sets are correct.
 //   - year:  parses leading 4 digits; equal → correct, else wrong + a
 //     direction hint ("up" if guess<target, "down" if guess>target).
 func CompareChampions(guess, target *Champion) []AttributeRow {
@@ -126,8 +128,9 @@ func asStringSlice(v any) []string {
 	case []string:
 		return x
 	case string:
-		// JS toSet falls back to splitting on "," when the value isn't an array.
-		// Champions.json never produces this branch but parity matters.
+		// Defensive: champions.json never sends a comma-joined string for a
+		// multi-valued attribute, but if a future data refresh ever does,
+		// split on "," instead of treating it as a single token.
 		if x == "" {
 			return nil
 		}
@@ -138,7 +141,7 @@ func asStringSlice(v any) []string {
 
 // compareMultiValue: full match (case-insensitive, order-independent) →
 // correct; any intersection → partial; otherwise wrong. Two empty sets
-// are correct (matches JS, e.g. for hypothetical "no positions" champs).
+// are correct (e.g. for a hypothetical "no positions" champion).
 func compareMultiValue(guess, target []string) string {
 	g := toLowerSet(guess)
 	t := toLowerSet(target)
@@ -182,8 +185,7 @@ func setsEqual(a, b map[string]struct{}) bool {
 	return true
 }
 
-// parseYear extracts the first 4 digits of s. Returns 0 if absent/non-numeric
-// — JS regex parity (`^(\d{4})`).
+// parseYear extracts the first 4 digits of s. Returns 0 if absent/non-numeric.
 func parseYear(s string) int {
 	if len(s) < 4 {
 		return 0
@@ -232,8 +234,8 @@ func compareYear(g, t int) (result, direction string) {
 	return ResultWrong, "down"
 }
 
-// formatValue mirrors JS's `formatValue`: empty → "—", array → comma-joined,
-// otherwise toString.
+// formatValue renders a value cell: empty → "—", array → comma-joined,
+// otherwise stringified.
 func formatValue(v any) string {
 	switch x := v.(type) {
 	case nil:

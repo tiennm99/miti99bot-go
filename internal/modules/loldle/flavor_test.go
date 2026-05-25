@@ -13,7 +13,7 @@ func TestAttemptFlavor(t *testing.T) {
 		6: "Close call!",
 		7: "Close call!",
 		8: "Phew — last one!",
-		9: "Phew — last one!", // attempt > max — defensive; matches JS >=
+		9: "Phew — last one!", // attempt > max — defensive (`>=` branch)
 	}
 	for attempt, want := range cases {
 		if got := attemptFlavor(attempt, maxAttempts); got != want {
@@ -28,7 +28,7 @@ func TestFormatDuration(t *testing.T) {
 		want string
 	}{
 		{0, "0s"},
-		{500, "1s"}, // round-half-up to JS Math.round
+		{500, "1s"}, // round-half-up
 		{499, "0s"},
 		{42_000, "42s"},
 		{60_000, "1m"},

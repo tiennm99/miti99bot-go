@@ -11,11 +11,11 @@ import (
 // MaxGuesses is the standard wordle round length.
 const MaxGuesses = 6
 
-// Cloud Firestore has no native per-document TTL equivalent to Cloudflare KV
-// — saved games linger until manually cleaned. Out of scope today; tracked
-// in port plan as a future cron.
+// Note: the KV store has no native per-document TTL — saved games linger
+// until manually cleaned. Out of scope today; could be added via a sweep
+// cron if storage cost ever matters.
 
-// GuessRecord is one entry in a game's history. JSON shape locks JS parity:
+// GuessRecord is one entry in a game's history:
 //
 //	{ "word": "crane", "results": [{"letter":"c","result":"correct"}, ...] }
 type GuessRecord struct {
@@ -24,11 +24,12 @@ type GuessRecord struct {
 }
 
 // GameState is the per-subject KV record for an in-progress (or finished)
-// round. Field tags match JS exactly so a JS-written round decodes cleanly.
+// round.
 //
 // `giveup` is always emitted (initialized to false on /wordle_new). Do NOT
-// add omitempty — the JS source serializes the field unconditionally and
-// cross-runtime migration depends on shape parity.
+// add omitempty — the field is part of the stored document's shape, so
+// emitting it unconditionally keeps already-saved games self-describing
+// when inspected via raw KV dumps.
 type GameState struct {
 	Target    string        `json:"target"`
 	Guesses   []GuessRecord `json:"guesses"`
@@ -38,7 +39,8 @@ type GameState struct {
 }
 
 // Stats is the lifetime score record. lastResultAt is *int64 so an unplayed
-// account marshals as `"lastResultAt": null` matching JS's initial shape.
+// account marshals as `"lastResultAt": null` — distinguishes "never played"
+// from "played at epoch zero".
 type Stats struct {
 	Played       int    `json:"played"`
 	Wins         int    `json:"wins"`
@@ -73,7 +75,7 @@ func saveGame(ctx context.Context, kv storage.KVStore, subject string, g *GameSt
 }
 
 // loadStats returns lifetime stats; missing → fresh-zero record (with
-// LastResultAt=nil), matching the JS `?? {…}` fallback.
+// LastResultAt=nil) so callers never need a nil check.
 func loadStats(ctx context.Context, kv storage.KVStore, subject string) (*Stats, error) {
 	var s Stats
 	err := kv.GetJSON(ctx, statsKey(subject), &s)

@@ -23,8 +23,8 @@ import (
 )
 
 // DefaultFlushInterval is how often Run flushes counters to the log. 60s
-// matches the JS source and keeps log volume modest (1 metrics line per
-// minute per active instance).
+// keeps log volume modest (1 metrics line per minute per active instance)
+// while still surfacing minute-scale traffic shifts in CloudWatch.
 const DefaultFlushInterval = 60 * time.Second
 
 // Registry holds named counters across three categories: command

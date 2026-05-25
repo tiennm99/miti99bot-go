@@ -54,8 +54,9 @@ func NewClient(ctx context.Context, apiKey string) (*Client, error) {
 // Generate runs a single-turn chat with `system` as the system instruction
 // and `user` as the user message. Returns the model's text reply.
 //
-// The output cap matches what the JS twentyq prompt expects (≤200 tokens,
-// single-line JSON). Temperature 0.7 mirrors the JS code path.
+// The output is capped to keep the twentyq prompt's response budget tight
+// (≤200 tokens, single-line JSON). Temperature 0.7 trades a little
+// variability for hint freshness.
 func (c *Client) Generate(ctx context.Context, system, user string) (string, error) {
 	if c == nil || c.g == nil {
 		return "", ErrNotConfigured

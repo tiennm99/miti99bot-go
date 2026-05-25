@@ -9,8 +9,9 @@ import (
 )
 
 func TestStats_DefaultLastResultAtIsNull(t *testing.T) {
-	// JS shape: `{ ..., lastResultAt: null }` — Go's *int64 must marshal
-	// as null when nil to keep cross-runtime KV documents compatible.
+	// Go's *int64 must marshal as null when nil, so unplayed accounts emit
+	// `"lastResultAt": null` and the field stays distinguishable from
+	// "played at ms-epoch 0".
 	s := Stats{}
 	b, err := json.Marshal(s)
 	if err != nil {
@@ -33,7 +34,7 @@ func TestStats_WithResultMarshalsAsNumber(t *testing.T) {
 	}
 }
 
-func TestGameState_JSONShapeMatchesJS(t *testing.T) {
+func TestGameState_JSONShapeIsStable(t *testing.T) {
 	g := GameState{
 		Target: "crane",
 		Guesses: []GuessRecord{

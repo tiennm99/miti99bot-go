@@ -11,7 +11,8 @@ const (
 )
 
 // openEndedRe rejects open-ended questions before spending a Gemini call.
-// JS-parity prefix list.
+// The prefix list is intentionally narrow (canonical interrogatives only)
+// to avoid blocking borderline yes/no phrasings.
 var openEndedRe = regexp.MustCompile(`(?i)^\s*(what|how|why|which|who|where|when|tell me|describe|explain)\b`)
 
 // ValidateResult is the public outcome of validateQuestion. Either OK + the

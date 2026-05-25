@@ -1,4 +1,4 @@
-// Package loldle ports the JS loldle classic mode — guess the League
+// Package loldle implements the loldle classic mode — guess the League
 // champion from attribute hints (gender, species, regions, etc.).
 package loldle
 
@@ -9,8 +9,8 @@ import (
 )
 
 // Champion is one row of champions.json. Field tags match loldle.net's
-// scraped schema verbatim so the embedded JSON file lifts unmodified from
-// the JS source.
+// scraped schema verbatim so the embedded JSON file can be regenerated from
+// the upstream scrape without a transform step.
 type Champion struct {
 	ChampionName string   `json:"championName"`
 	Gender       string   `json:"gender"`
@@ -22,9 +22,8 @@ type Champion struct {
 	ReleaseDate  string   `json:"release_date"` // YYYY-MM-DD
 }
 
-// rawChampions holds the embedded JSON byte stream. The data file is copied
-// byte-for-byte from src/modules/loldle/champions.json in the JS repo so
-// dictionaries are identical across runtimes (no normalization at port time).
+// rawChampions holds the embedded JSON byte stream — the loldle.net champion
+// dictionary scraped offline and checked into data/champions.json.
 //
 //go:embed data/champions.json
 var rawChampions []byte

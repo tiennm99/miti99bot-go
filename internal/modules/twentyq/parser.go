@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// Judgement is the canonical shape after parse + normalize. JS-parity field
-// names — IsGuess for "is_guess", Answer ∈ {"yes","no"}.
+// Judgement is the canonical shape after parse + normalize.
+// Answer ∈ {"yes","no"}.
 type Judgement struct {
 	IsGuess bool   `json:"is_guess"`
 	Answer  string `json:"answer"`
@@ -26,7 +26,8 @@ const defaultHint = "I couldn't fully parse that — try a clear yes/no question
 var fenceRe = regexp.MustCompile("(?i)```(?:json)?")
 
 // parseJSON returns the first balanced {...} JSON object found in `text`.
-// Returns nil on parse failure — matches JS parseJudgementJson tolerance.
+// Returns nil on parse failure — tolerant by design since LLM output is
+// untrusted and we'd rather fall back to defaults than 500.
 func parseJSON(text string) map[string]any {
 	if text == "" {
 		return nil
@@ -73,7 +74,7 @@ func parseJSON(text string) map[string]any {
 }
 
 // normalizeJudgement coerces a parsed payload to the canonical Judgement
-// shape with safe defaults. JS-parity behaviour.
+// shape with safe defaults (answer="no", hint=defaultHint, is_guess=false).
 func normalizeJudgement(payload map[string]any) Judgement {
 	out := Judgement{Answer: "no", Hint: defaultHint}
 	if payload == nil {
@@ -110,8 +111,8 @@ func redactSecret(hint, target string) string {
 	return re.ReplaceAllString(hint, "(redacted)")
 }
 
-// parseRoundStart returns (category, initialHint) or zero values + nil on
-// any failure. Caller substitutes JS-parity fallbacks.
+// parseRoundStart returns (category, initialHint, ok). ok=false on any
+// failure so the caller can substitute fallbacks rather than serve garbage.
 func parseRoundStart(payload map[string]any) (string, string, bool) {
 	if payload == nil {
 		return "", "", false

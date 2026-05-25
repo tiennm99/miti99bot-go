@@ -37,7 +37,8 @@ func (s *state) findByName(name string) *Champion {
 
 // rehydrateGuesses recomputes board rows from the stored championNames.
 // Champions removed from champions.json since the round started are skipped
-// (returns the surviving prefix), matching JS.
+// (returns the surviving prefix) so a data refresh never breaks an active
+// round.
 func (s *state) rehydrateGuesses(g *gameState) []boardEntry {
 	target := s.findByName(g.Target)
 	if target == nil {

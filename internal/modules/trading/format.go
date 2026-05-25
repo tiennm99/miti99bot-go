@@ -1,7 +1,7 @@
 // Package trading is a paper-trading module for VN stocks. Per-user
-// portfolio + buy/sell at market price + stats with P&L. Ported from the
-// JS trading module in miti99bot; SQL-based history + retention cron are
-// out of scope for this v1 port.
+// portfolio + buy/sell at market price + stats with P&L. SQL-based trade
+// history and a retention cron are out of scope today; the current
+// implementation keeps only the live portfolio in KV.
 package trading
 
 import (
@@ -37,7 +37,7 @@ func FormatStock(n float64) string {
 
 // FormatPnL renders a signed VND delta + percentage line, e.g.
 // "+1.234 VND (+12.34%)" or "-500.000 VND (-5.00%)". When invested is zero
-// the percentage is reported as 0.00 to avoid division-by-zero — matches JS.
+// the percentage is reported as 0.00 to avoid division-by-zero.
 func FormatPnL(currentValue, invested float64) string {
 	diff := currentValue - invested
 	pct := 0.0

@@ -19,7 +19,7 @@ type Portfolio struct {
 }
 
 // PortfolioMeta tracks invested cost basis for P&L. CreatedAt is purely
-// informational; carried for parity with JS schema.
+// informational (ms-epoch when the portfolio first existed).
 type PortfolioMeta struct {
 	Invested  float64 `json:"invested"`
 	CreatedAt int64   `json:"createdAt"`

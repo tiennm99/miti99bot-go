@@ -3,8 +3,9 @@
 //
 // Why a separate package: every game module needs a per-subject mutex to
 // turn KVStore's single-op atomicity into safe Get→mutate→Put. The bot
-// dispatcher runs each Telegram update in its own goroutine, and the JS
-// source's Cloudflare Workers serialisation is not a property Go inherits.
+// dispatcher runs each Telegram update in its own goroutine, so without
+// explicit per-subject serialisation two updates to the same game could
+// race and drop one write.
 //
 // Trade-off: the underlying sync.Map grows unboundedly with distinct keys
 // (~32 B each). At 1M keys that's ~32 MB — acceptable for the lifetime of

@@ -1,14 +1,13 @@
-// Package lolschedule ports the JS lolschedule module — LoL esports match
-// schedule via lolesports.com's persisted API.
+// Package lolschedule serves LoL esports match schedules via lolesports.com's
+// persisted API plus a daily push to subscribers.
 //
 // Endpoint: https://esports-api.lolesports.com/persisted/gw/getSchedule
-// Auth: x-api-key header (the public key embedded in lolesports.com's web
-// client — no registration). If Riot ever rotates it, lift the new value
+// Auth: x-api-key header — the public key embedded in lolesports.com's web
+// client (no registration). If Riot ever rotates it, lift the new value
 // from their public JS bundle.
 //
-// Cache strategy: KV-backed, 120s fresh window with 60-minute stale
-// fallback. Same shape as the JS source so cross-runtime KV migration
-// round-trips byte-for-byte.
+// Cache strategy: KV-backed cacheRecord with a 120s fresh window and a
+// 60-minute stale fallback (stale-while-error).
 package lolschedule
 
 import (
@@ -30,7 +29,7 @@ const (
 	apiURL = "https://esports-api.lolesports.com/persisted/gw/getSchedule"
 	// apiKey is the public lolesports.com web client key (not a secret).
 	// gosec flags it as a hardcoded credential; the value is shipped in
-	// Riot's own public JS bundle and serves the live site too.
+	// Riot's own public web bundle and serves the live site too.
 	// #nosec G101
 	apiKey    = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"
 	userAgent = "miti99bot/0.1 (https://t.me/miti99bot)"
@@ -104,8 +103,7 @@ type schedulePage struct {
 	} `json:"data"`
 }
 
-// cacheRecord is the KV value: timestamp + events. Same shape as JS so KV
-// export/import migration round-trips.
+// cacheRecord is the KV value: fetch timestamp (ms-epoch) + events.
 type cacheRecord struct {
 	Ts     int64           `json:"ts"` // ms-since-epoch when fetched
 	Events []ScheduleEvent `json:"events"`

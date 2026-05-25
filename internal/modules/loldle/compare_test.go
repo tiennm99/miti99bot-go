@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-// Fixtures lifted from tests/modules/loldle/compare.test.js so any future
-// drift between Go and JS scoring shows up as a test failure here.
+// Fixtures cover the compare-scoring rules. Drift in the scoring algorithm
+// or the canonical attribute order surfaces here as a test failure.
 
 var aatrox = &Champion{
 	ChampionName: "Aatrox",

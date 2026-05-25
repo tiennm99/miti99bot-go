@@ -7,8 +7,7 @@ import (
 
 // TestRenderGuess_AlignsLabelColumn locks the monospace column-alignment
 // invariant: the label column must be padded to the longest label so stacked
-// guesses on the board line up. Captures the JS render contract that the
-// rest of the test suite never exercises.
+// guesses on the board line up.
 func TestRenderGuess_AlignsLabelColumn(t *testing.T) {
 	rows := []AttributeRow{
 		{Key: "gender", Label: "Gender", Type: attrExact, GuessValue: "Male", Result: ResultCorrect},

@@ -22,8 +22,7 @@ type state struct {
 	locks keylock.Map // per-subject mutex; serialises Get→mutate→Put
 }
 
-// rejectMessage maps a validation failure into the user-facing reply. JS
-// parity word-for-word.
+// rejectMessage maps a validation failure into the user-facing reply.
 func rejectMessage(reason rejectReason) string {
 	switch reason {
 	case reasonEmpty:

@@ -31,7 +31,9 @@ func TestGameState_StartedAtAsNumber(t *testing.T) {
 }
 
 func TestStats_NoLastResultAtField(t *testing.T) {
-	// JS loldle stats schema differs from wordle: no lastResultAt. Lock that.
+	// loldle's stats schema deliberately differs from wordle's — no
+	// lastResultAt field. Lock that, since adding the field would silently
+	// change the on-disk shape for every existing player.
 	b, _ := json.Marshal(stats{})
 	want := `{"played":0,"wins":0,"streak":0,"bestStreak":0}`
 	if string(b) != want {

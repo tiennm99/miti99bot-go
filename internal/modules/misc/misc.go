@@ -31,9 +31,9 @@ const defaultTarget = "VNG"
 // %s slots: target (escaped), sender mention, sender mention.
 const trongTruongHopTemplate = "Trong trường hợp nhóm này bị điều tra bởi %s, %s khẳng định không liên quan tới nhóm hoặc những cá nhân khác trong nhóm này. %s không rõ tại sao lại có mặt ở đây vào thời điểm này, có lẽ tài khoản đã được thêm bởi một bên thứ ba."
 
-// lastPing mirrors the JS bot's wire format: { at: <ms-since-epoch number> }.
-// Stored as int64 ms-epoch (not time.Time → RFC3339) so a future cross-runtime
-// KV export/import migration round-trips byte-for-byte.
+// lastPing is the value stored at the `last_ping` key: { at: <ms-since-epoch> }.
+// int64 ms-epoch (not time.Time → RFC3339) keeps the on-disk shape compact
+// and consistent with every other timestamp field in the bot's KV.
 type lastPing struct {
 	At int64 `json:"at"`
 }

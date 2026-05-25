@@ -15,11 +15,11 @@ const (
 	MaxGuessesCap = 10
 )
 
-// gameState is the per-subject KV record. Field tags match JS exactly so a
-// JS-written round decodes cleanly. StartedAt is *int64 because the JS
-// source initialises it to `null` (timer doesn't start until first guess) —
+// gameState is the per-subject KV record.
+//
+// StartedAt is *int64 because the timer doesn't start until the first guess;
 // using time.Time would marshal as "0001-01-01T00:00:00Z" instead of null
-// and break wire-format parity.
+// and lose that distinction.
 //
 // Guesses is just championNames; comparison rows are recomputed at render
 // time against current champions.json so a weekly data refresh updates
@@ -30,8 +30,9 @@ type gameState struct {
 	StartedAt *int64   `json:"startedAt"` // ms-since-epoch | null
 }
 
-// stats lifetime score. JS shape — note no LastResultAt field (differs from
-// wordle's stats; the JS loldle source omits it, parity dictates we do too).
+// stats lifetime score. No LastResultAt field by design (differs from
+// wordle's Stats — loldle only ever needed running streaks, not "last
+// played at").
 type stats struct {
 	Played     int `json:"played"`
 	Wins       int `json:"wins"`
@@ -80,8 +81,8 @@ func clearGame(ctx context.Context, kv storage.KVStore, subject string) error {
 	return nil
 }
 
-// loadStats returns lifetime score; missing → fresh-zero record (matches
-// the JS `?? {…}` fallback).
+// loadStats returns lifetime score; missing → fresh-zero record so callers
+// never need a nil check.
 func loadStats(ctx context.Context, kv storage.KVStore, subject string) (*stats, error) {
 	var s stats
 	err := kv.GetJSON(ctx, statsKey(subject), &s)
@@ -118,7 +119,7 @@ func recordResult(ctx context.Context, kv storage.KVStore, subject string, won b
 
 // getMaxGuesses returns the effective round length: the per-subject override
 // if set and in range, otherwise MaxGuesses. Out-of-range values are
-// silently ignored (matches JS).
+// silently ignored — better to serve the default than 500 the user.
 func getMaxGuesses(ctx context.Context, kv storage.KVStore, subject string) (int, error) {
 	var cfg roundConfig
 	err := kv.GetJSON(ctx, configKey(subject), &cfg)

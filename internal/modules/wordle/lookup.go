@@ -2,8 +2,7 @@ package wordle
 
 import "strings"
 
-// normalizeWord lowercases input and strips anything outside a-z. JS parity:
-// `String(input).toLowerCase().replace(/[^a-z]/g, "")`.
+// normalizeWord lowercases input and strips anything outside a-z.
 func normalizeWord(input string) string {
 	lower := strings.ToLower(input)
 	out := make([]byte, 0, len(lower))
@@ -16,9 +15,9 @@ func normalizeWord(input string) string {
 	return string(out)
 }
 
-// rejectReason classifies why validateGuess returned not-ok. Values match the
-// JS source's discriminated-union strings so the user-facing reply mapping
-// (handlers.rejectReason) stays parallel.
+// rejectReason classifies why validateGuess returned not-ok. The user-facing
+// reply mapping in handlers branches on these values, so renaming a constant
+// here requires updating that mapping.
 type rejectReason string
 
 const (
@@ -27,9 +26,9 @@ const (
 	reasonUnknown rejectReason = "unknown"
 )
 
-// guessResult mirrors JS's `{ok: true, word} | {ok: false, reason, word}`.
-// Word is always populated (the normalized form), even on failure, so callers
-// can include it in error messages if desired.
+// guessResult is the validateGuess outcome. Word is always populated with the
+// normalized form, even on failure, so callers can include it in error
+// messages without re-normalizing.
 type guessResult struct {
 	OK     bool
 	Word   string

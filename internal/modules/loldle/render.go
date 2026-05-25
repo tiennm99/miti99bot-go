@@ -63,8 +63,8 @@ func buildRows(championName string, results []AttributeRow) []guessRow {
 }
 
 // formatRowGroups joins one or more guess-row groups into a single <pre>
-// block. Label column width is the max label across ALL groups, so stacked
-// guesses on a board align with each other (JS parity).
+// block. Label column width is the max label across ALL groups so stacked
+// guesses on a board align with each other.
 func formatRowGroups(groups [][]guessRow) string {
 	width := 0
 	for _, g := range groups {

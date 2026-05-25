@@ -8,7 +8,7 @@ import (
 	"github.com/tiennm99/miti99bot/internal/storage"
 )
 
-// Turn is one Q&A entry. JS-parity field names.
+// Turn is one Q&A entry stored in the game's history.
 type Turn struct {
 	Text    string `json:"text"`
 	IsGuess bool   `json:"isGuess"`

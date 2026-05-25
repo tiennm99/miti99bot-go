@@ -15,14 +15,11 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// SubjectFor mirrors JS getSubject: group/supergroup → chat ID (shared game
-// state), otherwise → user ID. Returns "" when no usable id is present
-// (caller should reply with a "cannot identify chat" error). Channels and
-// unknown chat types fall through to From.ID.
-//
-// Canonical shape: the wordle module previously had an explicit
-// ChatTypePrivate branch returning From.ID, which is identical to the
-// default branch — folded together here.
+// SubjectFor returns the identity key per-module state should be scoped by:
+// group/supergroup → chat ID (shared game state), otherwise → user ID.
+// Returns "" when no usable id is present (caller should reply with a
+// "cannot identify chat" error). Channels and unknown chat types fall
+// through to From.ID.
 func SubjectFor(msg *models.Message) string {
 	if msg == nil {
 		return ""
@@ -39,7 +36,7 @@ func SubjectFor(msg *models.Message) string {
 }
 
 // ArgAfterCommand returns everything after the first space in text, trimmed.
-// Works for `/cmd arg`, `/cmd@bot arg`, etc. JS-parity.
+// Works for `/cmd arg`, `/cmd@bot arg`, etc.
 func ArgAfterCommand(text string) string {
 	if text == "" {
 		return ""
@@ -88,9 +85,9 @@ func ReplyHTML(ctx context.Context, b *bot.Bot, msg *models.Message, text string
 }
 
 // WinRate computes wins/played as a percentage rounded to nearest int.
-// math.Round matches JS Math.round (round half away from zero for positive
-// inputs); plain int(...) truncation would render 2/3 as 66% where JS shows
-// 67%. Returns 0 when played == 0 (avoids NaN).
+// Uses math.Round (round half away from zero for positive inputs) so 2/3
+// renders as 67%, not 66% as plain int(...) truncation would give.
+// Returns 0 when played == 0 (avoids NaN).
 func WinRate(wins, played int) int {
 	if played <= 0 {
 		return 0

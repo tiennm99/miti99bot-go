@@ -1,21 +1,20 @@
-// Package wordle ports the JS wordle module — classic 5-letter word-guess
-// game, scored letter-by-letter green/yellow/grey.
+// Package wordle implements the classic 5-letter word-guess game, scored
+// letter-by-letter green/yellow/grey.
 package wordle
 
 // WordLength is wordle's fixed 5. Exposed so render.go and tests can reuse it
 // without magic numbers.
 const WordLength = 5
 
-// LetterResult labels a single guessed letter's state. Values match the JS
-// wire format byte-for-byte: "correct" | "partial" | "wrong".
+// LetterResult labels a single guessed letter's state. Values are part of
+// the stored game's JSON shape: "correct" | "partial" | "wrong".
 const (
 	ResultCorrect = "correct"
 	ResultPartial = "partial"
 	ResultWrong   = "wrong"
 )
 
-// LetterScore is the JSON shape stored in KV per guess. Field tags match JS
-// exactly so a saved JS game round-trips through Go without a custom decoder.
+// LetterScore is the JSON shape stored in KV per guess.
 type LetterScore struct {
 	Letter string `json:"letter"`
 	Result string `json:"result"`
@@ -65,7 +64,7 @@ func CompareWords(guess, target string) []LetterScore {
 
 // indexOfByte returns the first index of c in s, or -1.
 // (bytes.IndexByte gives the same answer; inlined to keep this file
-// dependency-free and emphasize the JS-parity origin.)
+// dependency-free since the scoring algorithm is the whole point.)
 func indexOfByte(s []byte, c byte) int {
 	for i, b := range s {
 		if b == c {

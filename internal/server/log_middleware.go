@@ -36,7 +36,7 @@ func (r *statusRecorder) effectiveStatus() int {
 //	{"msg":"req","method":"POST","path":"/webhook","status":200,"ms":12}
 //
 // CloudWatch Logs filters on `jsonPayload.msg=req AND jsonPayload.status>=500`
-// for 5xx-rate alerting. Mirrors the JS source's index.js shape.
+// for 5xx-rate alerting — keep the field names stable or the alarm goes dark.
 //
 // The req line is emitted from a deferred closure so a panic in a downstream
 // handler still produces an observable log entry — without this, a cron

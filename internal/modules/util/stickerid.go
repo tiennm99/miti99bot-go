@@ -57,8 +57,7 @@ func stickerIDCommand() modules.Command {
 	}
 }
 
-// stickerFrom pulls the sticker out of the *replied-to* message, mirroring the
-// JS handler: ctx.message.reply_to_message.sticker.
+// stickerFrom pulls the sticker out of the *replied-to* message.
 func stickerFrom(msg *models.Message) *models.Sticker {
 	if msg.ReplyToMessage == nil {
 		return nil

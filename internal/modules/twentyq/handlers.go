@@ -42,7 +42,8 @@ func (s *state) randomSeed() string {
 	return seeds[s.rng.IntN(len(seeds))]
 }
 
-// fallbackRoundStart matches JS roundstart fallback when the model fails.
+// fallbackRoundStart returns a generic category + hint pair the round can
+// start with when the LLM call fails or returns unparseable output.
 func fallbackRoundStart() (string, string) {
 	return "object", "it is something you might encounter in everyday life"
 }
@@ -91,7 +92,8 @@ func (s *state) handleTwentyq(ctx context.Context, b *bot.Bot, update *models.Up
 	if err != nil {
 		return err
 	}
-	// Solved-but-lingering rounds → start fresh transparently (JS-parity).
+	// Solved-but-lingering rounds → start fresh transparently rather than
+	// reject the user with "round already solved".
 	if game != nil && game.Solved {
 		// Best-effort delete: a hard failure here means the solved-state
 		// branch re-enters every call and the user is stuck. Log but keep

@@ -3,9 +3,8 @@ package loldle
 import "strings"
 
 // normalizeName folds a name to a comparable form: lowercase, alphanumeric
-// only. JS-parity with util/normalize-name.js — `String(s).toLowerCase().
-// replace(/[^a-z0-9]/g, "")`. Used for case/space/punctuation-insensitive
-// lookup so "Kai'Sa", "kaisa", and "KAI SA" all collapse to the same key.
+// only. Used for case/space/punctuation-insensitive lookup so "Kai'Sa",
+// "kaisa", and "KAI SA" all collapse to the same key.
 func normalizeName(s string) string {
 	lower := strings.ToLower(s)
 	out := make([]byte, 0, len(lower))

@@ -32,7 +32,7 @@ func infoCommand() modules.Command {
 			}
 			chatID := fmt.Sprintf("%d", msg.Chat.ID)
 			// Telegram omits message_thread_id outside forum topics, so a 0
-			// here is "no thread", same as JS's `?? "n/a"`.
+			// here means "no thread" — render as "n/a" instead of "0".
 			threadID := "n/a"
 			if msg.MessageThreadID != 0 {
 				threadID = fmt.Sprintf("%d", msg.MessageThreadID)

@@ -45,9 +45,8 @@ func TestPing_WritesLastPingKV(t *testing.T) {
 	ctx := context.Background()
 	kv := storage.NewMemoryKVStore()
 
-	// Drive the KV side directly: lock the wire format (ms-epoch number, not
-	// RFC3339 string). A JS-written {at: 1700000000000} must round-trip into
-	// the Go struct without a custom decoder.
+	// Drive the KV side directly: lock the wire format as a ms-epoch number
+	// (not an RFC3339 string), matching every other timestamp in the bot's KV.
 	if err := kv.PutJSON(ctx, lastPingKey, lastPing{At: time.Now().UTC().UnixMilli()}); err != nil {
 		t.Fatalf("PutJSON: %v", err)
 	}
@@ -60,16 +59,16 @@ func TestPing_WritesLastPingKV(t *testing.T) {
 		t.Errorf("read-back lastPing.At = %d, want positive ms-epoch", got.At)
 	}
 
-	// Also verify a value with the JS-shape decodes correctly.
+	// Verify a hand-written {"at": <ms-epoch>} document decodes correctly.
 	if err := kv.Put(ctx, lastPingKey, []byte(`{"at":1700000000000}`)); err != nil {
 		t.Fatal(err)
 	}
 	got = lastPing{}
 	if err := kv.GetJSON(ctx, lastPingKey, &got); err != nil {
-		t.Fatalf("GetJSON js-shape: %v", err)
+		t.Fatalf("GetJSON ms-epoch shape: %v", err)
 	}
 	if got.At != 1700000000000 {
-		t.Errorf("js-shape round-trip: At = %d, want 1700000000000", got.At)
+		t.Errorf("ms-epoch round-trip: At = %d, want 1700000000000", got.At)
 	}
 }
 

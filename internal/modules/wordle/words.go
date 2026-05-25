@@ -5,9 +5,8 @@ import (
 	"strings"
 )
 
-// rawWords holds the raw words.txt bytes embedded at compile time. The file
-// was extracted byte-for-byte from the JS source's words-data.js so the Go
-// and JS bots have identical dictionaries.
+// rawWords holds the raw words.txt bytes embedded at compile time. One word
+// per line, lowercase, exactly WordLength a-z; see loadWords for validation.
 //
 //go:embed data/words.txt
 var rawWords string
