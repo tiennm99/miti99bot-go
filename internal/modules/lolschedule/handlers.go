@@ -100,7 +100,7 @@ func (s *state) handleSubscribe(ctx context.Context, b *bot.Bot, update *models.
 	}
 	s.subscribersMu.Lock()
 	defer s.subscribersMu.Unlock()
-	added, err := addSubscriber(ctx, s.kv, msg.Chat.ID)
+	added, err := addSubscriber(ctx, s.kv, msg.Chat.ID, msg.MessageThreadID)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (s *state) handleUnsubscribe(ctx context.Context, b *bot.Bot, update *model
 	}
 	s.subscribersMu.Lock()
 	defer s.subscribersMu.Unlock()
-	removed, err := removeSubscriber(ctx, s.kv, msg.Chat.ID)
+	removed, err := removeSubscriber(ctx, s.kv, msg.Chat.ID, msg.MessageThreadID)
 	if err != nil {
 		return err
 	}

@@ -130,8 +130,50 @@ func TestHandleSubscribe_AddsAndIsIdempotent(t *testing.T) {
 		t.Errorf("duplicate subscribe should report Already; got %q", got)
 	}
 	ids, _ := listSubscribers(context.Background(), kv)
-	if len(ids) != 1 || ids[0] != 7 {
-		t.Errorf("subscribers = %v, want [7]", ids)
+	if len(ids) != 1 || ids[0] != (Subscriber{ChatID: 7}) {
+		t.Errorf("subscribers = %v, want [{7 0}]", ids)
+	}
+}
+
+// TestHandleSubscribe_ForumTopic_CapturesThreadID locks in the forum-topic
+// fix at the handler boundary: subscribing from a non-zero MessageThreadID
+// records that thread on the Subscriber so the daily push lands in the
+// originating topic instead of General.
+func TestHandleSubscribe_ForumTopic_CapturesThreadID(t *testing.T) {
+	rb, kv := installSchedule(t, todayBody, fakeNowMs)
+	upd := testutil.NewSupergroupMessage(555, 999, "/lolschedule_subscribe")
+	upd.Message.MessageThreadID = 42
+	rb.Bot.ProcessUpdate(context.Background(), upd)
+
+	subs, _ := listSubscribers(context.Background(), kv)
+	want := Subscriber{ChatID: 555, ThreadID: 42}
+	if len(subs) != 1 || subs[0] != want {
+		t.Errorf("subscribers = %v, want [%v]", subs, want)
+	}
+}
+
+// TestHandleUnsubscribe_ForumTopic_RemovesOnlyThatTopic verifies that
+// unsubscribing from one topic does not affect sister-topic subscriptions
+// in the same chat.
+func TestHandleUnsubscribe_ForumTopic_RemovesOnlyThatTopic(t *testing.T) {
+	rb, kv := installSchedule(t, todayBody, fakeNowMs)
+
+	// Subscribe in two topics of the same supergroup.
+	for _, tid := range []int{42, 99} {
+		upd := testutil.NewSupergroupMessage(555, 999, "/lolschedule_subscribe")
+		upd.Message.MessageThreadID = tid
+		rb.Bot.ProcessUpdate(context.Background(), upd)
+	}
+
+	// Unsubscribe in topic 42 only.
+	upd := testutil.NewSupergroupMessage(555, 999, "/lolschedule_unsubscribe")
+	upd.Message.MessageThreadID = 42
+	rb.Bot.ProcessUpdate(context.Background(), upd)
+
+	subs, _ := listSubscribers(context.Background(), kv)
+	want := Subscriber{ChatID: 555, ThreadID: 99}
+	if len(subs) != 1 || subs[0] != want {
+		t.Errorf("subscribers = %v, want [%v]", subs, want)
 	}
 }
 
